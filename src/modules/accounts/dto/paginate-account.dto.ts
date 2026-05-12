@@ -1,5 +1,5 @@
-import { Transform } from "class-transformer";
-import { IsOptional } from "class-validator";
+import { Transform } from 'class-transformer';
+import { IsOptional } from 'class-validator';
 
 export class PaginateAccountDto {
   @IsOptional()
@@ -9,12 +9,12 @@ export class PaginateAccountDto {
   keyword: string;
 
   @IsOptional()
-  account_id: string;
+  id: string;
 
   @IsOptional()
   isEditor: boolean;
 
-   @IsOptional()
+  @IsOptional()
   isAdmin: boolean;
 
   @IsOptional()

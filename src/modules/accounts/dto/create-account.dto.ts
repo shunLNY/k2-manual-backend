@@ -1,13 +1,12 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { AccountRole } from '../entities/account.entity';
 
-
 export class CreateAccountDto {
   @IsString()
   account_name: string;
 
   @IsString()
-  account_id: string;
+  id: string;
 
   @IsNotEmpty()
   @IsString()

@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Article } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 
 @Injectable()
 export class ArticlesService {
+  constructor(
+    @InjectRepository(Article)
+    private readonly articleRepository: Repository<Article>,
+  ) {}
+
   create(createArticleDto: CreateArticleDto) {
-    return 'This action adds a new article';
+    const newArticle = this.articleRepository.create(createArticleDto);
+    return this.articleRepository.save(newArticle);
   }
 
   findAll() {
-    return `This action returns all articles`;
+    return this.articleRepository.find(); // Deleted ဖြစ်ထားတာတွေကို auto ချန်ပေးပါလိမ့်မယ် (Soft Delete)
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} article`;
+  findOne(id: string) {
+    return this.articleRepository.findOneBy({ id });
   }
 
-  update(id: number, updateArticleDto: UpdateArticleDto) {
-    return `This action updates a #${id} article`;
+  async update(id: string, updateArticleDto: UpdateArticleDto) {
+    await this.articleRepository.update(id, updateArticleDto);
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} article`;
+  remove(id: string) {
+    return this.articleRepository.softDelete(id); // Migration မှာ deleted_at ပါလို့ softDelete သုံးတာ ပိုကောင်းပါတယ်
   }
 }

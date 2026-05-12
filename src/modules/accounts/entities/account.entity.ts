@@ -26,18 +26,17 @@ export class AccountEntity extends MainEntity {
   @Column({ length: 255, unique: true })
   email: string;
 
-  @Column({ length: 255, })
+  @Column({ length: 255 })
   password: string;
 
-  @Column({ length: 50, nullable : true   })
-  account_id: string;
+  @Column({ length: 50, nullable: true })
+  id: string;
 
+  // @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  // reset_password_token: string | null;
 
-  @Column({ type : "varchar" , length: 255, unique: true, nullable: true })
-  reset_password_token: string | null;
-
-  @Column({ type: 'timestamp', nullable: true })
-  reset_password_expires: Date | null;
+  // @Column({ type: 'timestamp', nullable: true })
+  // reset_password_expires: Date | null;
 
   // --- リレーション定義 ---
   // @OneToMany(() => CategoriesEntity, (category) => category.creator)
