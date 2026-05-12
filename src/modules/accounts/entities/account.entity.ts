@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany } from 'typeorm';
 // import { BlogEntity } from '../blogs/blog.entity';
 import { MainEntity } from '../../../common/entity/main.entity';
+import { CategoriesEntity } from '../../categories/entities/category.entity';
 // import { CategoriesEntity } from '../categories/categories.entity';
 // import TokenEntity from '../tokens/tokens.entity';
 
@@ -38,12 +39,11 @@ export class AccountEntity extends MainEntity {
   // @Column({ type: 'timestamp', nullable: true })
   // reset_password_expires: Date | null;
 
-  // --- リレーション定義 ---
-  // @OneToMany(() => CategoriesEntity, (category) => category.creator)
-  // created_categories: CategoriesEntity[];
+  @OneToMany(() => CategoriesEntity, (category) => category.creator)
+  created_categories: CategoriesEntity[];
 
-  // @OneToMany(() => CategoriesEntity, (category) => category.editor)
-  // edited_categories: CategoriesEntity[];
+  @OneToMany(() => CategoriesEntity, (category) => category.editor)
+  edited_categories: CategoriesEntity[];
 
   // @OneToMany(() => BlogEntity, (blog) => blog.creator)
   // created_blogs: BlogEntity[];

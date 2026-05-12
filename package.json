@@ -22,6 +22,7 @@
     "migration:create": "cd ./src/database/migrations && typeorm migration:create",
     "migration:generate": "npm run typeorm -- -d ./src/config/data-source.ts migration:generate ./src/database/migrations/m",
     "migration:run": "typeorm-ts-node-commonjs --dataSource ./src/config/data-source.ts migration:run",
+    "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:revert": "npm run typeorm -- -d ./src/config/data-source.ts migration:revert",
     "migration:drop": "npm run typeorm schema:drop -- -d ./src/config/data-source.ts",
     "migration:refresh": "npm run migration:drop && npm run migration:run"
