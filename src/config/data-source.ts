@@ -4,13 +4,13 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 const env = dotenv.config().parsed;
 dotenv.config();
 
-console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_USER:', process.env.DB_USERNAME);
 
 const options: DataSourceOptions = {
   type: 'mysql',
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT || 3308),
-  username: process.env.DB_USER,
+  username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   entities: [path.resolve(`${__dirname}/../modules/**/*.entity.{js,ts}`)],

@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany } from 'typeorm';
 // import { BlogEntity } from '../blogs/blog.entity';
 import { MainEntity } from '../../../common/entity/main.entity';
+import { CategoriesEntity } from "../../categories/entities/category.entity";
 // import { CategoriesEntity } from '../categories/categories.entity';
 // import TokenEntity from '../tokens/tokens.entity';
 
@@ -33,18 +34,17 @@ export class AccountEntity extends MainEntity {
   account_id: string;
 
 
-  @Column({ type : "varchar" , length: 255, unique: true, nullable: true })
-  reset_password_token: string | null;
+  // @Column({ type : "varchar" , length: 255, unique: true, nullable: true })
+  // reset_password_token: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
-  reset_password_expires: Date | null;
+  // @Column({ type: 'timestamp', nullable: true })
+  // reset_password_expires: Date | null;
 
-  // --- リレーション定義 ---
-  // @OneToMany(() => CategoriesEntity, (category) => category.creator)
-  // created_categories: CategoriesEntity[];
+  @OneToMany(() => CategoriesEntity, (category) => category.creator)
+  created_categories: CategoriesEntity[];
 
-  // @OneToMany(() => CategoriesEntity, (category) => category.editor)
-  // edited_categories: CategoriesEntity[];
+  @OneToMany(() => CategoriesEntity, (category) => category.editor)
+  edited_categories: CategoriesEntity[];
 
   // @OneToMany(() => BlogEntity, (blog) => blog.creator)
   // created_blogs: BlogEntity[];

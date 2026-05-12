@@ -1,36 +1,43 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, MaxLength } from "class-validator";
+import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
 import { StatusType } from "src/common/constants";
 
 export class CreateCategoryDto {
-  @IsNumber()
-  sort_order: number;
-
-  @IsEnum(StatusType)
-  status: StatusType;
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
+  @MaxLength(255)
   category_name: string;
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
+  @MaxLength(255)
   category_slug: string;
 
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  @MaxLength(100)
+  parent_category_id?: string;
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(50)
-  thumbnail_path: string;
-
-  @IsString()
+  @MaxLength(100)
   creator_id: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   editor_id: string;
 
+  @IsEnum(StatusType)
+  status: StatusType;
+
+  @IsNumber()
+  @IsOptional()
+  sort_order?: number;
+
+  @IsNumber()
+  @IsOptional()
+  number_of_articles_used?: number;
 }
+
+
