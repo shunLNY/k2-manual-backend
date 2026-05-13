@@ -9,6 +9,7 @@ import { AccountEntity } from './modules/accounts/entities/account.entity';
 import { CategoriesEntity } from './modules/categories/entities/category.entity';
 import { Article } from './modules/articles/entities/article.entity';
 import { ArticlesModule } from './modules/articles/articles.module';
+import TokenEntity from './modules/tokens/entities/token.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -25,12 +26,12 @@ import { ArticlesModule } from './modules/articles/articles.module';
 
       autoLoadEntities: true,
       synchronize: false,
-      entities: [Article,AccountEntity, CategoriesEntity],
+      entities: [Article, AccountEntity, CategoriesEntity, TokenEntity],
     }),
 
     AccountsModule,
     CategoriesModule,
-    ArticlesModule
+    ArticlesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

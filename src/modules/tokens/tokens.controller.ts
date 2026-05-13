@@ -2,33 +2,21 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { TokensService } from './tokens.service';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
+import { BaseController } from 'src/common/controller/base.controller';
+import { Serialize } from 'src/common/interceptor/serialize.interceptor';
+import { GetTokenSerialize } from './serialize/get-token.serialize';
 
-@Controller('tokens')
-export class TokensController {
-  constructor(private readonly tokensService: TokensService) {}
+@Controller("tokens")
+export class TokensController extends BaseController {
+    constructor(private service: TokensService) {
+        super();
+    }
 
-  @Post()
-  create(@Body() createTokenDto: CreateTokenDto) {
-    return this.tokensService.create(createTokenDto);
-  }
+    @Get('/')
+    @Serialize(GetTokenSerialize)
+    async getLogs() {
+        const all = await this.service.findAll();
+        return this.response(all);
+    }
 
-  @Get()
-  findAll() {
-    return this.tokensService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tokensService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTokenDto: UpdateTokenDto) {
-    return this.tokensService.update(+id, updateTokenDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tokensService.remove(+id);
-  }
 }

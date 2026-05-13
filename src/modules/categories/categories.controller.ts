@@ -5,7 +5,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { FilterCategoryDto } from './dto/filter-category.dto';
 import { CategoriesEntity } from './entities/category.entity';
 
-@Controller('categories')
+@Controller('admin/categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 

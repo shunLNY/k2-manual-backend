@@ -1,34 +1,67 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put, ParseUUIDPipe } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { BaseController } from 'src/common/controller/base.controller';
+import { Serialize } from 'src/common/interceptor/serialize.interceptor';
+import { PaginateAccountDto } from './dto/paginate-account.dto';
+import { AccountEntity } from './entities/account.entity';
+import { PaginateAccountSerialize } from './serialize/paginate.serializer';
+import { AuthUser } from 'src/common/decorators/auth-user.decorator';
 
-@Controller('accounts')
-export class AccountsController {
-  constructor(private readonly accountsService: AccountsService) {}
-
-  @Post()
-  create(@Body() createAccountDto: CreateAccountDto) {
-    return this.accountsService.create(createAccountDto);
+@Controller('admin/accounts')
+export class AccountsController extends BaseController {
+  constructor(private readonly accountsService: AccountsService) {
+    super();
   }
 
+  @Post()
+  async create(@Body() dto: CreateAccountDto) {
+    const data = await this.accountsService.create(dto);
+    return this.response(data);
+  }
+  
   @Get()
-  findAll() {
-    return this.accountsService.findAll();
+  async findAll() {
+    const data = await this.accountsService.findAll();
+    return this.response(data);
+  }
+
+  @Get('/paginate')
+  @Serialize(PaginateAccountSerialize)
+  async paginateAccounts(@Query() query: PaginateAccountDto, @AuthUser() user: AccountEntity,) {
+    const { items, meta } = await this.accountsService.paginateAccounts(query , user);
+    return this.paginateResponse(items, meta);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.accountsService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    const accountInfo = await this.accountsService.findOne(id);
+    return this.response(accountInfo);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAccountDto: UpdateAccountDto) {
-    return this.accountsService.update(+id, updateAccountDto);
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAccountDto,
+  ) {
+    const data = await this.accountsService.update(id, dto);
+    return this.response(data);
   }
+
+  @Put('/my-profile/:id')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() dto: UpdateAccountDto,
+  ) {
+    const data = await this.accountsService.updateProfile(id, dto);
+    return this.response(data);
+  }
+
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.accountsService.remove(+id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.accountsService.deleteAccount(id);
+    return this.response(data);
   }
 }
