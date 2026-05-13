@@ -21,7 +21,7 @@ export class CreateArticleDto {
 
   @IsNotEmpty()
   @IsString()
-  excerpt: string; // Design ထဲက '概要' (Summary/Description)
+  excerpt: string; // '概要' (Summary/Description)
 
   @IsNotEmpty()
   @IsString()

@@ -1,16 +1,17 @@
-import { StatusType } from "../../../common/constants";
-import { MainEntity } from "../../../common/entity/main.entity";
-import { AccountEntity } from "../../accounts/entities/account.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
+import { Article } from '../../articles/entities/article.entity';
+import { StatusType } from '../../../common/constants';
+import { MainEntity } from '../../../common/entity/main.entity';
+import { AccountEntity } from '../../accounts/entities/account.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity('categories')
 export class CategoriesEntity extends MainEntity {
   @Column({
-  type: 'enum',
-  enum: StatusType,
-  default: StatusType.PUBLIC,
-})
-status: StatusType;
+    type: 'enum',
+    enum: StatusType,
+    default: StatusType.PUBLIC,
+  })
+  status: StatusType;
 
   @Column({ type: 'varchar', length: 255 })
   category_name: string;
@@ -30,10 +31,13 @@ status: StatusType;
   @Column({ type: 'int', default: 0 })
   sort_order: number;
 
-  @Column({ type: 'int', default: 0})
+  @Column({ type: 'int', default: 0 })
   number_of_articles_used: number;
 
-// Parent ကို ညွှန်း
+  @OneToMany(() => Article, (article) => article.category)
+  articles: Article[];
+
+  // Parent ကို ညွှန်း
   @ManyToOne(() => CategoriesEntity, (category) => category.children, {
     onDelete: 'SET NULL',
   })
@@ -41,7 +45,7 @@ status: StatusType;
   parentCategory: CategoriesEntity;
 
   // Children တွေကို ပြန်ညွှန်း
-  @OneToMany(() => CategoriesEntity, (category) => category.parentCategory) 
+  @OneToMany(() => CategoriesEntity, (category) => category.parentCategory)
   children: CategoriesEntity[];
 
   // @ManyToOne(() => AccountEntity, (account) => account.created_categories, {
@@ -61,4 +65,3 @@ status: StatusType;
   @JoinColumn({ name: 'editor_id' })
   editor: AccountEntity;
 }
-

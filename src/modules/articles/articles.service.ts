@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Article } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { generateId } from 'src/common/service/helper.service';
 
 @Injectable()
 export class ArticlesService {
@@ -12,25 +13,61 @@ export class ArticlesService {
     private readonly articleRepository: Repository<Article>,
   ) {}
 
-  create(createArticleDto: CreateArticleDto) {
-    const newArticle = this.articleRepository.create(createArticleDto);
-    return this.articleRepository.save(newArticle);
+  // async create(createArticleDto: CreateArticleDto): Promise<Article> {
+  //   const article = this.articleRepository.create(createArticleDto);
+  //   return await this.articleRepository.save(article);
+  // }
+
+  // async create(createArticleDto: CreateArticleDto) {
+  //   const newArticle = this.articleRepository.create(createArticleDto);
+  //   return await this.articleRepository.save(newArticle);
+  // }
+
+  async create(createArticleDto: CreateArticleDto) {
+    const newArticle = this.articleRepository.create({
+      ...createArticleDto,
+      id: generateId(),
+    });
+
+    return await this.articleRepository.save(newArticle);
   }
 
-  findAll() {
-    return this.articleRepository.find(); // Deleted ဖြစ်ထားတာတွေကို auto ချန်ပေးပါလိမ့်မယ် (Soft Delete)
+  async findAll(): Promise<Article[]> {
+    return await this.articleRepository.find({
+      relations: {
+        category: true,
+        creator: true,
+        editor: true,
+      },
+      order: { publishedStartAt: 'DESC' },
+    });
   }
 
-  findOne(id: string) {
-    return this.articleRepository.findOneBy({ id });
+  async findOne(id: string): Promise<Article> {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['category', 'creator', 'editor'],
+    });
+    if (!article)
+      throw new NotFoundException(`Article with ID ${id} not found`);
+    return article;
   }
 
-  async update(id: string, updateArticleDto: UpdateArticleDto) {
-    await this.articleRepository.update(id, updateArticleDto);
-    return this.findOne(id);
+  async update(
+    id: string,
+    updateArticleDto: UpdateArticleDto,
+  ): Promise<Article> {
+    const article = await this.articleRepository.preload({
+      id: id,
+      ...updateArticleDto,
+    });
+    if (!article)
+      throw new NotFoundException(`Article with ID ${id} not found`);
+    return await this.articleRepository.save(article);
   }
 
-  remove(id: string) {
-    return this.articleRepository.softDelete(id); // Migration မှာ deleted_at ပါလို့ softDelete သုံးတာ ပိုကောင်းပါတယ်
+  async remove(id: string): Promise<void> {
+    const result = await this.articleRepository.delete(id);
+    if (result.affected === 0) throw new NotFoundException(`Article not found`);
   }
 }
