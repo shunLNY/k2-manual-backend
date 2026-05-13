@@ -1,34 +1,65 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, UseGuards, Request, Ip } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { LoginDto } from './dto/login.dto';
+import { BaseController } from 'src/common/controller/base.controller';
+import { AccountsService } from '../accounts/accounts.service';
+import { AuthGuard } from '@nestjs/passport';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
-export class AuthController {
-  constructor(private readonly authService: AuthService) {}
-
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+export class AuthController extends BaseController {
+  constructor(
+    private authService: AuthService,
+    readonly adminsService: AccountsService,
+  ) {
+    super();
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  @Post('login')
+  async login(
+    @Body() loginDTO: LoginDto,
+    @Headers() headers: any,
+    @Ip() ipAddress: any,
+  ) {
+    const { admin, accessToken, refreshToken, accessTokenExpire, } =
+      await this.authService.login(loginDTO, headers, ipAddress);
+
+    return this.response(
+      admin,
+      { title: 'Success!', body: 'login successful.' },
+      { accessToken, refreshToken, accessTokenExpire, },
+    );
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+  @Patch("logout")
+  async logout(@Headers() headers: any) {
+    console.log(headers)
+    // await this.logService.updateLogById(headers["session-id"]);
+    return this.response(undefined, { title: "Success!", body: "logout successful." });
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  async getProfile(@Request() request) {
+    return { data: request.user };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  // get refresh token
+  @Post("/token/new")
+  public async getNewToken(@Headers() headers: any) {
+    const token = await this.authService.getNewToken(headers);
+    return this.response(undefined, { title: "Success!", body: "get new token success" }, token);
+  }
+
+  @Post('forget-password')
+  async forgotPassword(@Body('email') email: string) {
+    // We return a generic success message to prevent email enumeration attacks
+    return this.authService.sendPasswordResetLink(email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    // Use a DTO for validation
+    return this.authService.resetPassword(body.token, body.new_password);
   }
 }

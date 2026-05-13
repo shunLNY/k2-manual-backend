@@ -7,6 +7,7 @@ import { AccountsModule } from './modules/accounts/accounts.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { AccountEntity } from './modules/accounts/entities/account.entity';
 import { CategoriesEntity } from './modules/categories/entities/category.entity';
+import TokenEntity from './modules/tokens/entities/token.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,7 +24,7 @@ import { CategoriesEntity } from './modules/categories/entities/category.entity'
 
       autoLoadEntities: true,
       synchronize: false,
-      entities: [AccountEntity, CategoriesEntity],
+      entities: [AccountEntity, CategoriesEntity, TokenEntity],
     }),
 
     AccountsModule,

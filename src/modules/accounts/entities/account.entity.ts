@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany } from 'typeorm';
 // import { BlogEntity } from '../blogs/blog.entity';
 import { MainEntity } from '../../../common/entity/main.entity';
 import { CategoriesEntity } from "../../categories/entities/category.entity";
+import TokenEntity from '../../tokens/entities/token.entity';
 // import { CategoriesEntity } from '../categories/categories.entity';
 // import TokenEntity from '../tokens/tokens.entity';
 
@@ -33,12 +34,11 @@ export class AccountEntity extends MainEntity {
   @Column({ length: 50, nullable : true   })
   account_id: string;
 
+  @Column({ type : "varchar" , length: 255, unique: true, nullable: true })
+  reset_password_token: string | null;
 
-  // @Column({ type : "varchar" , length: 255, unique: true, nullable: true })
-  // reset_password_token: string | null;
-
-  // @Column({ type: 'timestamp', nullable: true })
-  // reset_password_expires: Date | null;
+  @Column({ type: 'timestamp', nullable: true })
+  reset_password_expires: Date | null;
 
   @OneToMany(() => CategoriesEntity, (category) => category.creator)
   created_categories: CategoriesEntity[];
@@ -53,6 +53,6 @@ export class AccountEntity extends MainEntity {
   // edited_blogs: BlogEntity[];
 
   // //login logout tokens
-  // @OneToMany(() => TokenEntity, (token) => token.user)
-  // tokens: TokenEntity[];
+  @OneToMany(() => TokenEntity, (token) => token.user)
+  tokens: TokenEntity[];
 }

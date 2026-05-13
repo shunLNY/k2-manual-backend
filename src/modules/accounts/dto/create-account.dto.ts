@@ -6,6 +6,7 @@ export class CreateAccountDto {
   @IsString()
   account_name: string;
 
+  @IsOptional()
   @IsString()
   account_id: string;
 

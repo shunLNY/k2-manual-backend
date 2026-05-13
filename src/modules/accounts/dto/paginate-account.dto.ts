@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsOptional } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 
 export class PaginateAccountDto {
   @IsOptional()
@@ -9,6 +9,7 @@ export class PaginateAccountDto {
   keyword: string;
 
   @IsOptional()
+  @IsString()
   account_id: string;
 
   @IsOptional()
