@@ -7,10 +7,13 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { PaginateArticleDto } from './dto/paginate-article.dto';
+import { PaginateArticleResponse } from './serialize/paginate.serializer';
 
 @Controller('articles')
 export class ArticlesController {
@@ -22,8 +25,10 @@ export class ArticlesController {
   }
 
   @Get()
-  findAll() {
-    return this.articlesService.findAll();
+  async findAll(
+    @Query() query: PaginateArticleDto,
+  ): Promise<PaginateArticleResponse> {
+    return this.articlesService.findAll(query);
   }
 
   @Get(':id')
