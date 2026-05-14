@@ -7,7 +7,7 @@ export class CreateAccountDto {
 
   @IsOptional()
   @IsString()
-  id: string;
+  account_id: string;
 
   @IsNotEmpty()
   @IsString()

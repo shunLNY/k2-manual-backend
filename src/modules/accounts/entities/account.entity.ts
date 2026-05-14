@@ -32,13 +32,13 @@ export class AccountEntity extends MainEntity {
   password: string;
 
   @Column({ length: 50, nullable: true })
-  id: string;
+  account_id: string;
 
   @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   reset_password_token: string | null;
 
-  @OneToMany(() => CategoriesEntity, (category) => category.creator)
-  created_categories: CategoriesEntity[];
+  @Column({ type: 'timestamp', nullable: true })
+  reset_password_expires: Date | null;
 
   @OneToMany(() => CategoriesEntity, (category) => category.creator)
   created_categories: CategoriesEntity[];
