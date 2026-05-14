@@ -11,8 +11,10 @@ export class FilterCategoryDto {
   parent_category_id?: string;
 
   @IsOptional()
-  @IsString()
-  status?: string;
+  is_published: boolean;
+
+  @IsOptional()
+  is_private: boolean;
 
 
   @IsOptional()

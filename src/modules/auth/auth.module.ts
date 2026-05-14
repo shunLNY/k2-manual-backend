@@ -25,10 +25,9 @@ import { TokensService } from '../tokens/tokens.service';
     }),
     TokensModule,
     AccountsModule,
-    
   ],
   controllers: [AuthController],
-  providers: [AuthService , JwtStrategy , TokensService],
-  exports : [JwtModule  ]
+  providers: [AuthService, JwtStrategy, TokensService],
+  exports: [JwtModule],
 })
 export class AuthModule {}

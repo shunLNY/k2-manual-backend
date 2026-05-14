@@ -80,7 +80,8 @@ export class CategoriesService {
   async findAll(query: FilterCategoryDto): Promise<any[]> {
     const { 
       keyword,
-      status,
+      is_private,
+      is_published,
       start_date,
       end_date,
       creator_name,
@@ -105,10 +106,23 @@ export class CategoriesService {
       queryBuilder.where('category.parent_category_id IS NULL');
     }
 
-    // Status Filter
-    if (status) {
-      queryBuilder.andWhere("category.status = :status", { status });
+        if (is_private || is_published) {
+      const statusConditions = [];
+      if (is_private) {
+        statusConditions.push("category.status = 'private'");
+      }
+      if (is_published) {
+        statusConditions.push("category.status = 'public'");
+      }
+
+      if (statusConditions.length > 0) {
+        queryBuilder.andWhere(new Brackets((qb) => {
+          qb.where(statusConditions.join(' OR '));
+        }));
+      }
     }
+
+
 
     // Keyword Search
     if (keyword) {
