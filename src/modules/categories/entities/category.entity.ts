@@ -1,4 +1,4 @@
-import { Article } from '../../articles/entities/article.entity';
+import { ArticleEntity } from '../../articles/entities/article.entity';
 import { StatusType } from '../../../common/constants';
 import { MainEntity } from '../../../common/entity/main.entity';
 import { AccountEntity } from '../../accounts/entities/account.entity';
@@ -34,8 +34,8 @@ export class CategoriesEntity extends MainEntity {
   @Column({ type: 'int', default: 0 })
   number_of_articles_used: number;
 
-  @OneToMany(() => Article, (article) => article.category)
-  articles: Article[];
+  @OneToMany(() => ArticleEntity, (article) => article.category)
+  articles: ArticleEntity[];
 
   // Parent ကို ညွှန်း
   @ManyToOne(() => CategoriesEntity, (category) => category.children, {
@@ -48,11 +48,6 @@ export class CategoriesEntity extends MainEntity {
   @OneToMany(() => CategoriesEntity, (category) => category.parentCategory)
   children: CategoriesEntity[];
 
-  // @ManyToOne(() => AccountEntity, (account) => account.created_categories, {
-  //   onDelete: 'RESTRICT',
-  // })
-  // @JoinColumn({ name: 'creator_id' })
-  // creator: AccountEntity;
   @ManyToOne(() => AccountEntity, (account) => account.created_categories, {
     onDelete: 'RESTRICT',
   })

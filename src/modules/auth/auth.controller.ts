@@ -21,6 +21,8 @@ export class AuthController extends BaseController {
     @Headers() headers: any,
     @Ip() ipAddress: any,
   ) {
+        console.log("login  HITTTT");
+
     const { admin, accessToken, refreshToken, accessTokenExpire, } =
       await this.authService.login(loginDTO, headers, ipAddress);
 

@@ -1,12 +1,12 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from "typeorm";
 
-export class CreateCategoriesTable1778230640240 implements MigrationInterface {
+export class CreateTokensTable1778750632519 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
       await queryRunner.createTable(
-        new Table({
-          name: 'categories',
-          columns: [
+      new Table({
+        name: 'tokens',
+        columns: [
           {
             name: 'id',
             type: 'varchar',
@@ -15,64 +15,73 @@ export class CreateCategoriesTable1778230640240 implements MigrationInterface {
             generationStrategy: 'uuid',
           },
           {
-            name: 'sort_order',
-            type: 'int',
-          },
-          {
-            name: 'status',
-            type: 'enum',
-            enum: ['public', 'private'],
-            default: '"public"',
-            isNullable: false,
-          },
-          {
-            name: 'category_name',
+            name: 'refreshToken',
             type: 'varchar',
-            length: '100',
+            length: '255',
             isNullable: false,
           },
           {
-            name: 'number_of_articles_used',
-            type: 'int',
+            name: 'refreshExpire',
+            type: 'datetime',
             isNullable: false,
-            default: 0,
           },
           {
-            name: 'creator_id',
+            name: 'userAgent',
             type: 'varchar',
-            length: '50',
+            length: '255',
             isNullable: false,
           },
           {
-            name: 'editor_id',
+            name: 'deviceType',
+            type: 'varchar',
+            length: '255',
+            isNullable: false,
+          },
+          {
+            name: 'ipAddress',
+            type: 'varchar',
+            length: '255',
+            isNullable: false,
+          },
+          {
+            name: 'userId',
             type: 'varchar',
             length: '50',
             isNullable: false,
           },
           {
             name: 'createdAt',
-            type: 'timestamp',
+            type: 'datetime',
             isNullable: false,
             default: 'CURRENT_TIMESTAMP',
           },
           {
             name: 'updatedAt',
-            type: 'timestamp',
+            type: 'datetime',
             isNullable: false,
             default: 'CURRENT_TIMESTAMP',
           },
           {
             name: 'deletedAt',
-            type: 'timestamp',
+            type: 'datetime',
             isNullable: true,
           },
         ],
-        })
-      )
+      }),
+      false,
+    );
+    queryRunner.clearSqlMemory();
+    const userForeignKey = new TableForeignKey({
+      columnNames: ['userId'],
+      referencedColumnNames: ['id'],
+      referencedTableName: 'accounts',
+    });
+
+    await queryRunner.createForeignKey('tokens', userForeignKey);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-            await queryRunner.dropTable('categories')
+              await queryRunner.dropTable('tokens')
 
     }
 

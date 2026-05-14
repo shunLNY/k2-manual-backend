@@ -11,16 +11,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AccountsController } from './modules/accounts/accounts.controller';
 import { AccountsService } from './modules/accounts/accounts.service';
 import { AccountsModule } from './modules/accounts/accounts.module';
-import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { CommonModule } from './modules/common.module';
 import { FileModule } from './common/module/file.module';
 import { CacheModule } from '@nestjs/cache-manager';
-import { Article } from './modules/articles/entities/article.entity';
 import { ArticlesModule } from './modules/articles/articles.module';
-import { AccountEntity } from './modules/accounts/entities/account.entity';
-import { CategoriesEntity } from './modules/categories/entities/category.entity';
-import TokenEntity from './modules/tokens/entities/token.entity';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -31,22 +27,47 @@ import TokenEntity from './modules/tokens/entities/token.entity';
       load: [configuration],
       isGlobal: true,
     }),
-
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-
-      autoLoadEntities: true,
-      synchronize: false,
-      entities: [AccountEntity, CategoriesEntity, TokenEntity],
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule, CacheModule.register()],
+      inject: [ConfigService],
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<TypeOrmModuleOptions> => {
+        const dbConfig = configService.get<TypeOrmModuleOptions>(
+          'database.defaultOptions',
+        );
+        if (!dbConfig) {
+          throw new Error('Missing database.defaultOptions in config');
+        }
+        return dbConfig;
+      },
     }),
-
+    // メール送信設定
+    MailerModule.forRoot({
+      transport: {
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.MAIL_USER,
+          pass: process.env.MAIL_PASSWORD,
+        },
+      },
+      defaults: {
+        from: process.env.MAIL_FROM,
+      },
+      template: {
+        dir: process.cwd() + '/templates/',
+        adapter: new HandlebarsAdapter(),
+      },
+    }),
+    CommonModule,
+    CategoriesModule,
+    ArticlesModule,
+    TokensModule,
+    AuthModule,
     AccountsModule,
-    CategoriesModule
+    FileModule
   ],
   controllers: [AppController, AccountsController],
   providers: [AppService, AccountsService],

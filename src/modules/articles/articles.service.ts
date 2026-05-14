@@ -1,19 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Article } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { generateId } from 'src/common/service/helper.service';
 import { plainToInstance } from 'class-transformer';
 import { PaginateArticleResponse } from './serialize/paginate.serializer';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
+import { ArticleEntity } from './entities/article.entity';
 
 @Injectable()
 export class ArticlesService {
   constructor(
-    @InjectRepository(Article)
-    private readonly articleRepository: Repository<Article>,
+    @InjectRepository(ArticleEntity)
+    private readonly articleRepository: Repository<ArticleEntity>,
   ) {}
 
   async create(createArticleDto: CreateArticleDto) {
@@ -75,7 +75,7 @@ export class ArticlesService {
     );
   }
 
-  async findOne(id: string): Promise<Article> {
+  async findOne(id: string): Promise<ArticleEntity> {
     const article = await this.articleRepository.findOne({
       where: { id },
       relations: ['category', 'creator', 'editor'],
@@ -88,7 +88,7 @@ export class ArticlesService {
   async update(
     id: string,
     updateArticleDto: UpdateArticleDto,
-  ): Promise<Article> {
+  ): Promise<ArticleEntity> {
     const article = await this.articleRepository.preload({
       id: id,
       ...updateArticleDto,

@@ -12,7 +12,7 @@ import { CategoriesEntity } from '../../categories/entities/category.entity';
 import { AccountEntity } from '../../accounts/entities/account.entity';
 
 @Entity('articles')
-export class Article {
+export class ArticleEntity {
   @PrimaryColumn({ type: 'varchar', length: 50 })
   id: string;
 
