@@ -7,7 +7,7 @@ import { TokensService } from '../tokens/tokens.service';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { LoginDto } from './dto/login.dto';
 import { DEVICE_TYPE_HEADER, REFRESH_TOKEN_HEADER } from 'src/common/constants';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { MailerService } from '@nestjs-modules/mailer';
 @Injectable()
 @Injectable()
@@ -175,37 +175,81 @@ export class AuthService {
     }; // 日本語に修正
   }
 
-  async resetPassword(token: string, newPass: string): Promise<AccountEntity> {
+  // async resetPassword(token: string, newPass: string): Promise<AccountEntity> {
 
-    console.log(token, newPass, "........resetPassword")
+  //   console.log(token, newPass, "........resetPassword")
 
-    const user = await this.accountRepo.findOne({
-      where: {
-        reset_password_token: token,
-      },
-    });
+  //   const user = await this.accountRepo.findOne({
+  //     where: {
+  //       reset_password_token: token,
+  //     },
+  //   });
 
-    console.log(user, "........user in resetPassword")
-    if (user?.reset_password_expires && dayjs().isAfter(dayjs(user.reset_password_expires), 'm')) {
-      throw new BadRequestException(
-        'パスワードリセット用のトークンが無効か、有効期限が切れています。', // 日本語に修正
-      );
-    }
+  //   console.log(user, "........user in resetPassword")
+  //   if (user?.reset_password_expires && dayjs().isAfter(dayjs(user.reset_password_expires), 'm')) {
+  //     throw new BadRequestException(
+  //       'パスワードリセット用のトークンが無効か、有効期限が切れています。', // 日本語に修正
+  //     );
+  //   }
 
-    if (!user) {
-      throw new BadRequestException(
-        'パスワードリセット用のトークンが無効か、有効期限が切れています。',
-      ); // 日本語に修正
-    }
+  //   if (!user) {
+  //     throw new BadRequestException(
+  //       'パスワードリセット用のトークンが無効か、有効期限が切れています。',
+  //     ); // 日本語に修正
+  //   }
 
-    // Hash the new password
-    const salt = await bcrypt.genSalt();
-    user.password = await bcrypt.hash(newPass, salt);
+  //   // Hash the new password
+  //   const salt = await bcrypt.genSalt();
+  //   user.password = await bcrypt.hash(newPass, salt);
 
-    // Invalidate the token
-    user.reset_password_token = null;
-    user.reset_password_expires = null;
+  //   // Invalidate the token
+  //   user.reset_password_token = null;
+  //   user.reset_password_expires = null;
 
-    return this.accountRepo.save(user);
+  //   return this.accountRepo.save(user);
+  // }
+
+async resetPassword(
+  token: string,
+  newPass: string,
+): Promise<{ message: string }> {
+  const user = await this.accountRepo.findOne({
+    where: {
+      reset_password_token: token,
+    },
+  });
+
+  if (!user) {
+    throw new BadRequestException(
+      'パスワードリセット用のトークンが無効か、有効期限が切れています。',
+    );
   }
+
+  console.log('Now:', dayjs().format());
+  console.log(
+    'Expire:',
+    dayjs(user.reset_password_expires).format(),
+  );
+
+  if (
+    user.reset_password_expires &&
+    dayjs().isAfter(dayjs(user.reset_password_expires))
+  ) {
+    throw new BadRequestException(
+      'パスワードリセット用のトークンが無効か、有効期限が切れています。',
+    );
+  }
+
+  const hashedPassword = await bcrypt.hash(newPass, 10);
+
+  await this.accountRepo.update(user.id, {
+    password: hashedPassword,
+    reset_password_token: null,
+    reset_password_expires: null,
+  });
+
+  return {
+    message: 'Password reset successful',
+  };
+}
 }

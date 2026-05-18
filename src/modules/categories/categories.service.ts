@@ -62,21 +62,12 @@ export class CategoriesService {
     const category = this.categoryRepository.create({
       ...createCategoryDto,
       sort_order: nextSortOrder,
-      creator_id: 'system',   // 
-      editor_id: 'system',    // need to change after login
+      creator_id: createCategoryDto.creator_id,
+      editor_id: createCategoryDto.editor_id,
     });
     return await this.categoryRepository.save(category);
   }
 
-  // async findAll(): Promise<CategoriesEntity[]> {
-  //   return await this.categoryRepository.find({
-  //     where: {
-  //     parentCategory: IsNull(), // 一番上の親カテゴリーだけ取る
-  //   },
-  //   relations: ['children', 'children.children', 'children.children.children'], // 各々の子カテゴリーも一緒に取る
-  //   order: { sort_order: 'ASC' },
-  //   });
-  // }
   async findAll(query: FilterCategoryDto): Promise<any[]> {
     const { 
       keyword,
@@ -93,8 +84,19 @@ export class CategoriesService {
       .leftJoinAndSelect('category.children', 'childLevel2')
       .leftJoinAndSelect('childLevel2.children', 'childLevel3')
       .leftJoinAndSelect('childLevel3.children', 'childLevel4')
+
       .leftJoinAndSelect('category.creator', 'creator')
       .leftJoinAndSelect('category.editor', 'editor')
+
+      .leftJoinAndSelect('childLevel2.creator', 'childLevel2Creator')
+      .leftJoinAndSelect('childLevel2.editor', 'childLevel2Editor')
+
+      .leftJoinAndSelect('childLevel3.creator', 'childLevel3Creator')
+      .leftJoinAndSelect('childLevel3.editor', 'childLevel3Editor')
+
+      .leftJoinAndSelect('childLevel4.creator', 'childLevel4Creator')
+      .leftJoinAndSelect('childLevel4.editor', 'childLevel4Editor')
+
       .orderBy('category.sort_order', 'ASC')
       .addOrderBy('childLevel2.sort_order', 'ASC')
       .addOrderBy('childLevel3.sort_order', 'ASC')
@@ -106,24 +108,6 @@ export class CategoriesService {
       queryBuilder.where('category.parent_category_id IS NULL');
     }
 
-        if (is_private || is_published) {
-      const statusConditions = [];
-      if (is_private) {
-        statusConditions.push("category.status = 'private'");
-      }
-      if (is_published) {
-        statusConditions.push("category.status = 'public'");
-      }
-
-      if (statusConditions.length > 0) {
-        queryBuilder.andWhere(new Brackets((qb) => {
-          qb.where(statusConditions.join(' OR '));
-        }));
-      }
-    }
-
-
-
     // Keyword Search
     if (keyword) {
       queryBuilder.andWhere(new Brackets((qb) => {
@@ -134,13 +118,103 @@ export class CategoriesService {
       }));
     }
 
-    if (start_date) queryBuilder.andWhere('category.createdAt >= :start_date', { start_date });
-    if (end_date) queryBuilder.andWhere('category.createdAt <= :end_date', { end_date });
-    if (creator_name) queryBuilder.andWhere('creator.account_name LIKE :creator_name', { creator_name: `%${creator_name}%` });
-    if (editor_name) queryBuilder.andWhere('editor.account_name LIKE :editor_name', { editor_name: `%${editor_name}%` });
-
     const categories = await queryBuilder.getMany();
-    return categories.map(category => this.mapCategory(category));
+    const mapped = categories.map(category => this.mapCategory(category));
+
+    return this.filterCategoryTree(mapped, {
+      is_private: is_private === true || (is_private as any) === 'true',
+      is_published: is_published === true || (is_published as any) === 'true',
+      keyword,
+      start_date,
+      end_date,
+      creator_name,
+      editor_name,
+    });
+  }
+
+  private filterCategoryTree(categories: any[], filters: any): any[] {
+    const hasFilter = 
+      filters.is_private || 
+      filters.is_published || 
+      filters.keyword || 
+      filters.start_date || 
+      filters.end_date || 
+      filters.creator_name || 
+      filters.editor_name;
+
+    if (!hasFilter) return categories;
+
+    const matchesFilter = (category: any): boolean => {
+      // 1. Status Filter
+      if (filters.is_private || filters.is_published) {
+        let statusMatches = false;
+        if (filters.is_private && category.status === 'private') statusMatches = true;
+        if (filters.is_published && category.status === 'public') statusMatches = true;
+        if (!statusMatches) return false;
+      }
+
+      // 2. Creator Filter
+      if (filters.creator_name) {
+        const creatorName = category.creator?.account_name || '';
+        if (!creatorName.toLowerCase().includes(filters.creator_name.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 3. Editor Filter
+      if (filters.editor_name) {
+        const editorName = category.editor?.account_name || '';
+        if (!editorName.toLowerCase().includes(filters.editor_name.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 4. Date Filters
+      if (filters.start_date) {
+        const categoryDate = new Date(category.createdAt);
+        const filterDate = new Date(filters.start_date);
+        if (categoryDate < filterDate) return false;
+      }
+      if (filters.end_date) {
+        const categoryDate = new Date(category.createdAt);
+        const filterDate = new Date(filters.end_date);
+        filterDate.setHours(23, 59, 59, 999); //filter till the end time of of end_date(23hr 59min 59sec 999ms)
+        if (categoryDate > filterDate) return false;
+      }
+
+      // 5. Keyword Filter
+      if (filters.keyword) {
+        const categoryName = category.category_name || '';
+        if (!categoryName.toLowerCase().includes(filters.keyword.toLowerCase())) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    const processCategory = (cat: any): any | null => {
+      const filteredChildren = cat.child_categories
+        ? cat.child_categories
+            .map((child: any) => processCategory(child))
+            .filter((child: any) => child !== null)
+        : [];
+
+      const selfMatches = matchesFilter(cat);
+
+      if (selfMatches || filteredChildren.length > 0) {
+        return {
+          ...cat,
+          child_categories: filteredChildren,
+        };
+      }
+
+      return null;
+    };
+
+    return categories
+      .map((cat: any) => processCategory(cat))
+      .filter((cat: any) => cat !== null);
   }
 
   private mapCategory(category: any) {
