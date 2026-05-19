@@ -4,7 +4,9 @@ import {
   IsEnum,
   IsString,
   IsUUID,
+  IsDateString,
 } from 'class-validator';
+import { ArticleStatus } from '../entities/article.entity';
 
 export class CreateArticleDto {
   @IsNotEmpty()
@@ -25,22 +27,17 @@ export class CreateArticleDto {
 
   @IsNotEmpty()
   @IsString()
-  thumbnailPath: string;
+  thumbnail_path: string;
 
-  @IsEnum(['public', 'private'])
-  status: 'public' | 'private';
-
+  @IsEnum(ArticleStatus)
   @IsNotEmpty()
-  publishedStartAt: Date;
+  status: ArticleStatus;
 
   @IsOptional()
-  publishedEndAt?: Date;
-
-  @IsNotEmpty()
-  @IsUUID()
-  creatorId: string;
+  @IsDateString()
+  published_start_at?: Date | null;
 
   @IsOptional()
-  @IsUUID()
-  editorId?: string;
+  @IsDateString()
+  published_end_at?: Date | null;
 }

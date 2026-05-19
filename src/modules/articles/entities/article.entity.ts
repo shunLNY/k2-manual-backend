@@ -11,6 +11,11 @@ import {
 import { CategoriesEntity } from '../../categories/entities/category.entity';
 import { AccountEntity } from '../../accounts/entities/account.entity';
 
+export enum ArticleStatus {
+  PUBLISHED = 'published',
+  PRIVATE = 'private'
+}
+
 @Entity('articles')
 export class ArticleEntity {
   @PrimaryColumn({ type: 'varchar', length: 50 })
@@ -34,7 +39,7 @@ export class ArticleEntity {
     length: 255,
     nullable: true,
   })
-  thumbnailPath: string;
+  thumbnail_path: string;
 
   @Column({ type: 'enum', enum: ['public', 'private'], default: 'public' })
   status: string;
@@ -47,7 +52,7 @@ export class ArticleEntity {
 
   // --- Creator ---
   @Column({ name: 'creator_id', type: 'varchar', length: 50 })
-  creatorId: string;
+  creator_id: string;
 
   @ManyToOne(() => AccountEntity)
   @JoinColumn({ name: 'creator_id', referencedColumnName: 'id' })
@@ -55,7 +60,7 @@ export class ArticleEntity {
 
   // --- Editor ---
   @Column({ name: 'editor_id', type: 'varchar', length: 50 })
-  editorId: string;
+  editor_id: string;
 
   @ManyToOne(() => AccountEntity)
   @JoinColumn({ name: 'editor_id', referencedColumnName: 'id' })

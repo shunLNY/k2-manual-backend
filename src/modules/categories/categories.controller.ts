@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put, UseGuards, ParseUUIDPipe, ParseArrayPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Put,
+  UseGuards,
+  ParseUUIDPipe,
+  ParseArrayPipe,
+} from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -11,7 +24,7 @@ import { BaseController } from 'src/common/controller/base.controller';
 
 @Controller('admin/categories')
 @UseGuards(AuthGuard('jwt'))
-export class CategoriesController extends BaseController{
+export class CategoriesController extends BaseController {
   constructor(private readonly categoriesService: CategoriesService) {
     super();
   }
@@ -19,7 +32,8 @@ export class CategoriesController extends BaseController{
   @Post()
   async create(
     @AuthUser() user: AccountEntity,
-    @Body() createCategoryDto: CreateCategoryDto) {
+    @Body() createCategoryDto: CreateCategoryDto,
+  ) {
     const data = await this.categoriesService.create(createCategoryDto, user);
     return this.response(data);
   }
@@ -37,11 +51,12 @@ export class CategoriesController extends BaseController{
   }
 
   @Get()
-  async findAll(@Query() query: FilterCategoryDto): Promise<{ data: CategoriesEntity[] }> {
+  async findAll(
+    @Query() query: FilterCategoryDto,
+  ): Promise<{ data: CategoriesEntity[] }> {
     const categories = await this.categoriesService.findAll(query);
     return { data: categories };
   }
-
 
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -53,21 +68,31 @@ export class CategoriesController extends BaseController{
   async update(
     @AuthUser() user: AccountEntity,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto) {
-    const category = await this.categoriesService.update(id, updateCategoryDto, user);
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
+    const category = await this.categoriesService.update(
+      id,
+      updateCategoryDto,
+      user,
+    );
     return this.response(category);
   }
 
   @Delete(':id')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.categoriesService.remove(id);
-    return this.response(undefined, { title: 'Success', body: 'Category deleted successfully' });
+    return this.response(undefined, {
+      title: 'Success',
+      body: 'Category deleted successfully',
+    });
   }
 
   @Post('reorder')
-  async reorder(@Body('ids', ParseArrayPipe) ids: string[], @AuthUser() user: AccountEntity) {
-    await this.categoriesService.reorder(ids, user)
-    return this.response({ message: ' Order Updated' })
+  async reorder(
+    @Body('ids', ParseArrayPipe) ids: string[],
+    @AuthUser() user: AccountEntity,
+  ) {
+    await this.categoriesService.reorder(ids, user);
+    return this.response({ message: ' Order Updated' });
   }
 }
-
