@@ -5,7 +5,7 @@ import { CategoriesService } from './categories.service';
 export class PublicCategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  @Get('active')
+  @Get('/')
   async findActiveCategories() {
     const categories = await this.categoriesService.findActiveCategories();
     return { data: categories };
