@@ -28,8 +28,8 @@ export default class TokenEntity {
   @Column()
   userAgent: string;
 
-  @Column()
-  deviceType: string;
+@Column({ type: 'varchar', nullable: true }) // Added nullable: true
+deviceType?: string;
 
   @Column()
   ipAddress: string;

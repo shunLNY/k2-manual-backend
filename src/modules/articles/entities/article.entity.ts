@@ -22,7 +22,7 @@ export class ArticleEntity {
   id: string;
 
   @Column({ name: 'category_id', type: 'varchar', length: 50 })
-  categoryId: string;
+  category_id: string;
 
   @Column({ type: 'varchar', length: 255 })
   title: string;
@@ -45,10 +45,10 @@ export class ArticleEntity {
   status: string;
 
   @Column({ name: 'published_start_at', type: 'datetime' })
-  publishedStartAt: Date;
+  published_start_at: Date;
 
   @Column({ name: 'published_end_at', type: 'datetime', nullable: true })
-  publishedEndAt: Date;
+  published_end_at: Date;
 
   // --- Creator ---
   @Column({ name: 'creator_id', type: 'varchar', length: 50 })

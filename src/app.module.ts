@@ -67,9 +67,9 @@ import { MailerModule } from '@nestjs-modules/mailer';
     TokensModule,
     AuthModule,
     AccountsModule,
-    FileModule
+    FileModule,
   ],
-  controllers: [AppController, AccountsController],
-  providers: [AppService, AccountsService],
+  controllers: [AppController],
+  providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

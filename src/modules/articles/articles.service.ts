@@ -10,42 +10,47 @@ import { Brackets, DataSource, Repository } from 'typeorm';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { generateId, paginate, Pagination } from 'src/common/service/helper.service';
-import { plainToInstance } from 'class-transformer';
-import { PaginateArticleResponse } from './serialize/paginate.serializer';
-import { ArticleEntity, ArticleStatus } from './entities/article.entity';
+import { ArticleEntity } from './entities/article.entity';
 import { AccountEntity, AccountRole } from '../accounts/entities/account.entity';
 import { FileService } from 'src/common/service/file.service';
 import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { CategoriesEntity } from '../categories/entities/category.entity';
-import { StatusType } from 'src/common/constants';
 
 @Injectable()
 export class ArticlesService {
+  private readonly articleRepository: Repository<ArticleEntity>;
+
   constructor(
     private readonly dataSource: DataSource,
-    @InjectRepository(ArticleEntity)
     @InjectRepository(CategoriesEntity)
     private readonly categoryRepo: Repository<CategoriesEntity>,
+    @InjectRepository(ArticleEntity)
     private readonly articlesRepo: Repository<ArticleEntity>,
     @Inject(FileService) private readonly fileService: FileService,
-    @InjectRepository(ArticleEntity)
-    private readonly articleRepository: Repository<ArticleEntity>,
-  ) { }
+  ) {
+    this.articleRepository = this.articlesRepo;
+  }
 
   async create(createArticleDto: CreateArticleDto, user: AccountEntity) {
-    const { category_id, ...articlesData } = createArticleDto;
-    // createArticleDto.content
+    const rawDto = createArticleDto as any;
+    const category_id = rawDto.category_id || (rawDto.categoryIds && rawDto.categoryIds[0]);
+    const publishStartAt = rawDto.publish_start_at || rawDto.published_start_at || rawDto.publishStartAt || rawDto.publishedStartAt;
+    const publishEndAt = rawDto.publish_end_at || rawDto.published_end_at || rawDto.publishEndAt || rawDto.publishedEndAt;
+
     let processedContent = createArticleDto.content;
     if (processedContent) {
       processedContent = await this.processContentImages(processedContent);
     }
 
     if (!user || !user.id) {
-      throw new BadRequestException(
-        'Creator user is required to create a blog',
-      );
+      throw new BadRequestException('Creator user is required to create an article');
+    }
+
+    let dbStatus = createArticleDto.status as string;
+    if (dbStatus === 'published') {
+      dbStatus = 'public';
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -53,32 +58,30 @@ export class ArticlesService {
     await queryRunner.startTransaction();
 
     try {
-      const image = articlesData.thumbnail_path;
-      if (image?.startsWith('/storage/_tmp/images')) {
-        const newImagePath = this.generatePartImageSliderPath(image);
-        articlesData.thumbnail_path = newImagePath;
+      const thumbnailPath = createArticleDto.thumbnail_path;
+      let finalThumbnailPath = thumbnailPath;
+      if (thumbnailPath?.startsWith('/storage/_tmp/images')) {
+        finalThumbnailPath = this.generatePartImageSliderPath(thumbnailPath);
         try {
-          this.fileService.moveFile(image, newImagePath);
+          this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
         } catch (err) {
           console.log(err, '...........move image error ');
         }
       }
 
-      const excerpt = this.generateExcerpt(createArticleDto.content || '');
       const articles = this.articlesRepo.create({
-        ...articlesData,
+        id: generateId(),
+        title: createArticleDto.title,
+        status: dbStatus,
         content: processedContent,
         excerpt: this.generateExcerpt(processedContent || ''),
+        thumbnail_path: finalThumbnailPath,
+        published_start_at: publishStartAt ? new Date(publishStartAt) : new Date(),
+        published_end_at: publishEndAt ? new Date(publishEndAt) : null,
+        category_id: category_id,
         creator_id: user.id,
         editor_id: user.id,
       });
-
-      (articles as any).categories = undefined;
-      (articles as any).articlesCategories = undefined;
-
-      if ((articles as any).id) {
-        delete (articles as any).id;
-      }
 
       const savedArticles = await queryRunner.manager.save(articles);
 
@@ -105,7 +108,6 @@ export class ArticlesService {
       try {
         const originalArticles = await this.articlesRepo.findOne({
           where: { id },
-          // relations: ['blog_categories', 'blog_categories.category'],
         });
 
         if (!originalArticles) {
@@ -115,12 +117,15 @@ export class ArticlesService {
         }
 
         const newArticlesData = {
+          id: generateId(),
           title: `${originalArticles.title} - コピー`,
           content: originalArticles.content,
+          excerpt: originalArticles.excerpt,
           thumbnail_path: originalArticles.thumbnail_path,
-          status: ArticleStatus.PRIVATE,
-          published_start_at: null,
-          published_end_at: null,
+          status: 'private',
+          published_start_at: originalArticles.published_start_at,
+          published_end_at: originalArticles.published_end_at,
+          category_id: originalArticles.category_id,
           creator_id: user.id,
           editor_id: user.id,
         };
@@ -131,9 +136,8 @@ export class ArticlesService {
         await queryRunner.commitTransaction();
         const completeNewArticles = await this.findOne(savedArticles.id);
         duplicatedBlogs.push(completeNewArticles);
-
       } catch (err) {
-        console.error('GET /articles でエラーが発生しました', err);
+        console.error('Duplicating article failed:', err);
         if (queryRunner.isTransactionActive) {
           await queryRunner.rollbackTransaction();
         }
@@ -147,9 +151,15 @@ export class ArticlesService {
   }
 
   async findAll() {
-    return this.articlesRepo.find({
-      relations: ['creator', 'editor', 'categories.category'],
+    const list = await this.articlesRepo.find({
+      relations: ['creator', 'editor', 'category'],
       order: { createdAt: 'DESC' },
+    });
+    return list.map(item => {
+      if (item.status === 'public') {
+        item.status = 'published';
+      }
+      return item;
     });
   }
 
@@ -160,10 +170,12 @@ export class ArticlesService {
       creator_name, editor_name,
       isPublished, isPrivate
     } = query;
+
     const queryBuilder = this.articlesRepo.createQueryBuilder('article')
+      .leftJoinAndSelect('article.category', 'category')
       .leftJoinAndSelect('article.creator', 'creator')
       .leftJoinAndSelect('article.editor', 'editor')
-      .orderBy('article.created_at', 'DESC')
+      .orderBy('article.createdAt', 'DESC');
 
     if (keyword) {
       queryBuilder.andWhere(new Brackets(qb => {
@@ -172,8 +184,11 @@ export class ArticlesService {
       }));
     }
 
-    if (category_id && category_id.length > 0) {
-      queryBuilder.andWhere('category.id IN (:...category_id)', { category_id });
+    if (category_id) {
+      const categoryIds = Array.isArray(category_id) ? category_id : [category_id];
+      if (categoryIds.length > 0) {
+        queryBuilder.andWhere('category.id IN (:...categoryIds)', { categoryIds });
+      }
     }
 
     if (published_start_at) {
@@ -202,8 +217,8 @@ export class ArticlesService {
     const params = {};
 
     if (isPublished) {
-      statusConditions.push('(article.status = :publicStatus AND (article.publish_start_at <= NOW() OR article.publish_start_at IS NULL))');
-      params['publicStatus'] = 'published';
+      statusConditions.push('(article.status = :publicStatus AND (article.published_start_at <= NOW() OR article.published_start_at IS NULL))');
+      params['publicStatus'] = 'public';
     }
     if (isPrivate) {
       statusConditions.push('article.status = :privateStatus');
@@ -218,18 +233,22 @@ export class ArticlesService {
     const paginatedResult = await paginate(queryBuilder, { page: Number(page) || 1, limit: Number(limit) || 10 });
 
     const items = paginatedResult.items.map(article => {
-      const categories = article.blog_categories ? article.blog_categories.map(articleCategory => ({
-        id: articleCategory.category?.id,
-        category_name: articleCategory.category?.category_name,
-      })).filter(cat => cat.id) : [];
+      const categories = article.category ? [{
+        id: article.category.id,
+        category_name: article.category.category_name,
+      }] : [];
 
-      delete article.blog_categories;
+      let mappedStatus = article.status;
+      if (mappedStatus === 'public') {
+        mappedStatus = 'published';
+      }
 
       return {
         ...article,
-        published_start_at: dayjs(article.published_start_at || article.created_at).format('YYYY-MM-DD'),
-        published_end_at: dayjs(article.published_end_at || article.created_at).format('YYYY-MM-DD'),
-        created_at: dayjs(article.created_at).format('YYYY-MM-DD'),
+        status: mappedStatus,
+        published_start_at: article.published_start_at ? dayjs(article.published_start_at).format('YYYY-MM-DD') : null,
+        published_end_at: article.published_end_at ? dayjs(article.published_end_at).format('YYYY-MM-DD') : null,
+        created_at: dayjs(article.createdAt).format('YYYY-MM-DD'),
         categories: categories,
       };
     });
@@ -237,214 +256,82 @@ export class ArticlesService {
     return {
       ...paginatedResult,
       items,
-    } as Pagination
+    } as Pagination;
   }
-
-  async p_findAll() {
-    const now = new Date();
-    const excludedBlogIds = await this.getExcludedBlogIds();
-
-    const qb = this.articlesRepo
-      .createQueryBuilder('article')
-      .leftJoinAndSelect('article.blog_categories', 'blog_categories')
-      .leftJoinAndSelect('blog_categories.category', 'category', 'category.deletedAt IS NULL')
-      .where('(article.publish_start_at IS NULL OR article.publish_start_at <= :now)', { now })
-      .andWhere('(article.publish_end_at IS NULL OR article.publish_end_at >= :now)', { now })
-      .andWhere('blog.status = :status', { status: 'published' });
-
-    if (excludedBlogIds.length > 0) {
-      qb.andWhere('blog.id NOT IN (:...excludedBlogIds)', { excludedBlogIds });
-    }
-  }
-
-  private async getExcludedBlogIds(): Promise<string[]> {
-    const excludedCategories = await this.categoryRepo
-      .createQueryBuilder('category')
-      .select('category.id', 'id')
-      .where('category.status = :status', { status: StatusType.PRIVATE })
-      .orWhere('category.deletedAt IS NOT NULL')
-      .withDeleted()
-      .getRawMany();
-
-    if (excludedCategories.length === 0) {
-      return [];
-    }
-    const excludedCategoryIds = excludedCategories.map(c => c.id);
-
-    const blogsToExclude = await this.articlesRepo
-      .createQueryBuilder('article')
-      .select('DISTINCT article.id', 'id')
-      .innerJoin('article.blog_categories', 'bc')
-      .where('bc.category_id IN (:...excludedCategoryIds)', { excludedCategoryIds })
-      .getRawMany();
-
-    const excludedBlogIds = blogsToExclude.map(b => b.id);
-
-    return excludedBlogIds;
-  }
-
-  async p_paginateBlogs(query: PaginateArticleDto) {
-    const now = new Date();
-    const excludedBlogIds = await this.getExcludedBlogIds();
-
-    const qb = this.articlesRepo
-      .createQueryBuilder('article')
-      .leftJoinAndSelect('article.category', 'category', 'category.deletedAt IS NULL')
-      .where('(article.publish_start_at IS NULL OR article.publish_start_at <= :now)', { now })
-      .andWhere('(article.publish_end_at IS NULL OR article.publish_end_at >= :now)', { now })
-      .andWhere('article.status = :status', { status: 'published' });
-
-    if (excludedBlogIds.length > 0) {
-      qb.andWhere('article.id NOT IN (:...excludedBlogIds)', { excludedBlogIds });
-    }
-
-    qb.addSelect('ISNULL(blog.publish_start_at)', 'publish_date_is_null')
-      .orderBy('publish_date_is_null', 'ASC')
-      .addOrderBy('blog.publish_start_at', 'DESC');
-
-    const { page, limit } = query;
-
-    const paginatedResult = await paginate(qb, {
-      page: Number(page) || 1,
-      limit: Number(limit) || 10,
-    });
-
-    const items = paginatedResult.items.map(blog => {
-      const categories = blog.blog_categories
-        ? blog.blog_categories.map(bc => bc.category).filter(cat => cat)
-        : [];
-
-      return {
-        id: blog.id,
-        title: blog.title,
-        content: blog.content,
-        published_at: dayjs(blog.publish_start_at || blog.createdAt).format('YYYY-MM-DD'),
-        blog_categories: categories.map(cat => ({
-          id: cat.id,
-          category_name: cat.category_name,
-          category_slug: cat.category_slug,
-        })),
-        excerpt: blog.excerpt || null,
-        thumbnail_path: blog.thumbnail_path || null,
-        publish_start_at: blog.publish_start_at || null,
-        publish_end_at: blog.publish_end_at || null,
-      };
-    });
-
-    return {
-      items: items,
-      meta: paginatedResult.meta,
-    };
-  }
-
-  // Pagination & Filter
-  // async findAll(query: PaginateArticleDto): Promise<PaginateArticleResponse> {
-  //   const { search, status, page = 1, limit = 10 } = query;
-  //   const skip = (page - 1) * limit;
-
-  //   const queryBuilder = this.articleRepository.createQueryBuilder('article');
-
-  //   // Relationship
-  //   queryBuilder
-  //     .leftJoinAndSelect('article.category', 'category')
-  //     .leftJoinAndSelect('article.creator', 'creator')
-  //     .leftJoinAndSelect('article.editor', 'editor');
-
-  //   // Filter Logic
-  //   if (status) {
-  //     queryBuilder.andWhere('article.status = :status', { status });
-  //   }
-
-  //   if (search) {
-  //     queryBuilder.andWhere(
-  //       '(article.title LIKE :search OR article.content LIKE :search)',
-  //       { search: `%${search}%` },
-  //     );
-  //   }
-
-  //   // Pagination & Sorting
-  //   queryBuilder
-  //     .orderBy('article.publishedStartAt', 'DESC')
-  //     .skip(skip)
-  //     .take(limit);
-
-  //   const [items, total] = await queryBuilder.getManyAndCount();
-
-  //   // Serializer သို့ ပြောင်းလဲခြင်း
-  //   return plainToInstance(
-  //     PaginateArticleResponse,
-  //     {
-  //       data: items,
-  //       meta: {
-  //         totalItems: total,
-  //         itemCount: items.length,
-  //         itemsPerPage: limit,
-  //         totalPages: Math.ceil(total / limit),
-  //         currentPage: page,
-  //       },
-  //     },
-  //     { excludeExtraneousValues: true },
-  //   );
-  // }
 
   async findOne(id: string): Promise<ArticleEntity> {
     const article = await this.articleRepository.findOne({
       where: { id },
       relations: ['category', 'creator', 'editor'],
     });
-    if (!article)
+    if (!article) {
       throw new NotFoundException(`Article with ID ${id} not found`);
+    }
+    if (article.status === 'public') {
+      article.status = 'published';
+    }
     return article;
   }
 
   async update(id: string, updateArticleDto: UpdateArticleDto, user: AccountEntity) {
-    const { category_id, ...articleData } = updateArticleDto;
-    console.log(category_id, articleData);
+    const rawDto = updateArticleDto as any;
+    const categoryId = rawDto.categoryId || rawDto.category_id || (rawDto.categoryIds && rawDto.categoryIds[0]);
+    const publishStartAt = rawDto.publish_start_at || rawDto.published_start_at || rawDto.publishStartAt || rawDto.publishedStartAt;
+    const publishEndAt = rawDto.publish_end_at || rawDto.published_end_at || rawDto.publishEndAt || rawDto.publishedEndAt;
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       const oldBlog = await this.findOne(id);
+      const thumbnailPath = updateArticleDto.thumbnail_path;
+      let finalThumbnailPath = thumbnailPath;
 
-      const existedThumbnail = await this.articlesRepo.findOne({ where: { id: id } })
-
-      const image = articleData.thumbnail_path;
-
-      if (image?.startsWith('/storage/_tmp/images')) {
-        if (existedThumbnail && existedThumbnail.thumbnail_path) {
-          this.fileService.delete(existedThumbnail.thumbnail_path);
+      if (thumbnailPath?.startsWith('/storage/_tmp/images')) {
+        if (oldBlog && oldBlog.thumbnail_path) {
+          try {
+            this.fileService.delete(oldBlog.thumbnail_path);
+          } catch (err) {
+            console.log('Error deleting old thumbnail:', err);
+          }
         }
 
-        const newImagePath = this.generatePartImageSliderPath(image);
-        articleData.thumbnail_path = newImagePath;
+        finalThumbnailPath = this.generatePartImageSliderPath(thumbnailPath);
         try {
-          this.fileService.moveFile(image, newImagePath);
+          this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
         } catch (err) {
           console.log(err, '...........move image error ');
         }
       }
 
-      //Delete the existing thumbnail of item from local storage path
-      // existedThumbnail && this.fileService.delete(existedThumbnail.thumbnail_path);
-      // const image = blogData.thumbnail_path;
-      // if (image?.startsWith('/storage/_tmp/images')) {
-      //   const newImagePath = this.generatePartImageSliderPath(image);
-      //   blogData.thumbnail_path = newImagePath;
-      //   try {
-      //     this.fileService.moveFile(image, newImagePath);
-      //   } catch (err) {
-      //     console.log(err, '...........move image error ');
-      //   }
-      // }
+      let dbStatus = updateArticleDto.status as string;
+      if (dbStatus === 'published') {
+        dbStatus = 'public';
+      }
 
-      const updatedBlogData = { ...articleData, editor_id: user.id };
+      const updatedBlogData: any = {
+        title: updateArticleDto.title,
+        status: dbStatus,
+        thumbnail_path: finalThumbnailPath,
+        category_id: categoryId,
+        editor_id: user.id,
+      };
+
+      if (publishStartAt !== undefined) {
+        updatedBlogData.published_start_at = publishStartAt ? new Date(publishStartAt) : null;
+      }
+      if (publishEndAt !== undefined) {
+        updatedBlogData.published_end_at = publishEndAt ? new Date(publishEndAt) : null;
+      }
+
       if (updateArticleDto.content) {
         const newContent = await this.processContentImages(updateArticleDto.content);
         await this.deleteUnusedImages(oldBlog.content, newContent);
         updatedBlogData.content = newContent;
         updatedBlogData.excerpt = this.generateExcerpt(newContent);
       }
+
       await queryRunner.manager.update(ArticleEntity, id, updatedBlogData);
 
       await queryRunner.commitTransaction();
@@ -466,7 +353,11 @@ export class ArticlesService {
     await this.deleteUnusedImages(articleToDelete.content, '');
 
     if (articleToDelete.thumbnail_path) {
-      this.fileService.delete(articleToDelete.thumbnail_path);
+      try {
+        this.fileService.delete(articleToDelete.thumbnail_path);
+      } catch (err) {
+        console.log('Error deleting thumbnail file on removal:', err);
+      }
     }
 
     const result = await this.articlesRepo.softDelete(id);
@@ -486,9 +377,8 @@ export class ArticlesService {
     return plainText.substring(0, length);
   }
 
-  //Generate Image Slider Path
   private generatePartImageSliderPath(oldPath: string) {
-    const extensionName = oldPath.split('.')[1];
+    const extensionName = oldPath.split('.').pop();
     return (
       '/storage/blogs/thumbnail-image/' +
       this.fileService.generateFilePrefix('P_') +
@@ -520,12 +410,10 @@ export class ArticlesService {
           : imagePath;
 
         const extension = relativeSrcPath.split('.').pop();
-        // 新しい名前を作成
         const newFileName = `articles_content_${Date.now()}.${extension}`;
         const newPath = `/storage/articles/content_images/${newFileName}`;
 
         try {
-          // file location　変更
           this.fileService.moveFile(relativeSrcPath, newPath);
           updatedContent = updatedContent.split(imagePath).join(newPath);
         } catch (err) {

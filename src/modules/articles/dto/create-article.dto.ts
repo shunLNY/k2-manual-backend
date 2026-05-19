@@ -11,7 +11,7 @@ import { ArticleStatus } from '../entities/article.entity';
 export class CreateArticleDto {
   @IsNotEmpty()
   @IsUUID()
-  categoryId: string;
+  category_id: string;
 
   @IsNotEmpty()
   @IsString()
@@ -21,13 +21,13 @@ export class CreateArticleDto {
   @IsString()
   content: string; // Summer Note content
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  excerpt: string; // '概要' (Summary/Description)
+  excerpt?: string; // '概要' (Summary/Description)
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  thumbnail_path: string;
+  thumbnail_path?: string;
 
   @IsEnum(ArticleStatus)
   @IsNotEmpty()

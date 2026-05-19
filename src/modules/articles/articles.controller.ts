@@ -49,10 +49,9 @@ export class ArticlesController extends BaseController {
   }
 
   @Get()
-  async findAll(
-    @Query() query: PaginateArticleDto,
-  ): Promise<PaginateArticleResponse> {
-    return this.articlesService.findAll(query);
+  async findAll() {
+    const data = await this.articlesService.findAll();
+    return this.response(data);
   }
 
   @Get('paginate')

@@ -1,0 +1,148 @@
+# API Test Suite for K2 Manual Backend
+# Note: Use the "REST Client" extension in VS Code to run these requests directly.
+
+@baseUrl = http://localhost:4000
+@authToken = {{login.response.body.accessToken}}
+
+### 1. Authenticate / Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin3@gmail.com",
+  "password": "root123"
+}
+
+### 2. Get Profile
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{authToken}}
+
+### 3. Logout
+PATCH {{baseUrl}}/auth/logout
+Authorization: Bearer {{authToken}}
+
+### 4. Refresh Token
+POST {{baseUrl}}/auth/token/new
+Authorization: Bearer {{authToken}}
+
+
+### ==========================================
+### CATEGORY ROUTE TESTING (Protected)
+### ==========================================
+
+### 5. Create Category
+# @name createCategory
+POST {{baseUrl}}/admin/categories
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "category_name": "General Manuals",
+  "status": "public",
+  "parent_id": null
+}
+
+### 6. Get All Categories
+GET {{baseUrl}}/admin/categories
+Authorization: Bearer {{authToken}}
+
+### 7. Get Root Categories
+GET {{baseUrl}}/admin/categories/roots
+Authorization: Bearer {{authToken}}
+
+### 8. Get Active Categories
+GET {{baseUrl}}/admin/categories/active
+Authorization: Bearer {{authToken}}
+
+### 9. Get Single Category Details
+@categoryId = {{createCategory.response.body.data.id}}
+GET {{baseUrl}}/admin/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}
+
+### 10. Update Category
+PUT {{baseUrl}}/admin/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "category_name": "Updated General Manuals",
+  "status": "public",
+  "parent_id": null
+}
+
+### 11. Delete Category
+DELETE {{baseUrl}}/admin/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}
+
+
+### ==========================================
+### ARTICLE ROUTE TESTING (Protected)
+### ==========================================
+
+### 12. Create Article
+# @name createArticle
+POST {{baseUrl}}/admin/articles
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "category_id": "0d256860-264d-11ed-a261-0242ac120002",
+  "title": "Welcome to K2 Manual",
+  "content": "<p>This is a rich text editor content with a test image <img src=\"/storage/_tmp/images/test.jpg\" /></p>",
+  "status": "public",
+  "thumbnail_path": "/storage/_tmp/images/thumb.jpg",
+  "published_start_at": "2026-05-19T00:00:00Z"
+}
+
+### 13. Paginate Articles (Admin Dashboard)
+GET {{baseUrl}}/admin/articles/paginate?page=1&limit=10
+Authorization: Bearer {{authToken}}
+
+### 14. Get All Articles
+GET {{baseUrl}}/admin/articles
+Authorization: Bearer {{authToken}}
+
+### 15. Get Single Article Details
+@articleId = {{createArticle.response.body.data.id}}
+GET {{baseUrl}}/admin/articles/{{articleId}}
+Authorization: Bearer {{authToken}}
+
+### 16. Duplicate Article
+POST {{baseUrl}}/admin/articles/duplicate
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "ids": ["{{articleId}}"]
+}
+
+### 17. Update Article
+PATCH {{baseUrl}}/admin/articles/{{articleId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Welcome to K2 Manual",
+  "status": "public",
+  "content": "<p>Updated content</p>",
+  "thumbnail_path": "/storage/blogs/thumbnail-image/P_test.jpg",
+  "category_id": "0d256860-264d-11ed-a261-0242ac120002"
+}
+
+### 18. Delete Article
+DELETE {{baseUrl}}/admin/articles/{{articleId}}
+Authorization: Bearer {{authToken}}
+
+
+### ==========================================
+### ACCOUNT ROUTE TESTING (Protected)
+### ==========================================
+
+### 19. Get Admin Accounts
+GET {{baseUrl}}/admin/accounts
+Authorization: Bearer {{authToken}}
+
+### 20. Paginate Accounts
+GET {{baseUrl}}/admin/accounts/paginate?page=1&limit=10
+Authorization: Bearer {{authToken}}
