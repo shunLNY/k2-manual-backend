@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
@@ -8,8 +8,10 @@ import { PaginateAccountDto } from './dto/paginate-account.dto';
 import { AccountEntity } from './entities/account.entity';
 import { PaginateAccountSerialize } from './serialize/paginate.serializer';
 import { AuthUser } from 'src/common/decorators/auth-user.decorator';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('admin/accounts')
+@UseGuards(AuthGuard('jwt'))
 export class AccountsController extends BaseController {
   constructor(private readonly accountsService: AccountsService) {
     super();

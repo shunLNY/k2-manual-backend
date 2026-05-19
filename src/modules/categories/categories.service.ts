@@ -1,21 +1,23 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, IsNull, Repository } from 'typeorm';
+import { Brackets, DataSource, IsNull, Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoriesEntity } from './entities/category.entity';
 import { StatusType } from 'src/common/constants';
 import { FilterCategoryDto } from './dto/filter-category.dto';
+import { AccountEntity } from '../accounts/entities/account.entity';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     @InjectRepository(CategoriesEntity)
     private readonly categoryRepository: Repository<CategoriesEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async create(createCategoryDto: CreateCategoryDto): Promise<CategoriesEntity> {
-    const { parent_category_id, sort_order } = createCategoryDto;
+  async create(createCategoryDto: CreateCategoryDto, user: AccountEntity): Promise<CategoriesEntity> {
+    const { parent_category_id, sort_order,creator_id,editor_id } = createCategoryDto;
 
     if (parent_category_id) {
       // 親カテゴリーがあればその親に親があるか、どのくらいあるか確認する
@@ -62,8 +64,8 @@ export class CategoriesService {
     const category = this.categoryRepository.create({
       ...createCategoryDto,
       sort_order: nextSortOrder,
-      creator_id: createCategoryDto.creator_id,
-      editor_id: createCategoryDto.editor_id,
+      creator_id: user.id,
+      editor_id: user.id,
     });
     return await this.categoryRepository.save(category);
   }
@@ -237,7 +239,7 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<any> {
+  async update(id: string, updateCategoryDto: UpdateCategoryDto, user: AccountEntity): Promise<any> {
     const category = await this.categoryRepository.findOneBy({ id });
     if (!category) {
       throw new NotFoundException(`Category with ID "${id}" not found`);
@@ -269,6 +271,7 @@ export class CategoriesService {
     });
 
     const updatedCategory = Object.assign(category, updateData);
+    updatedCategory.editor_id = user.id;
     const saved = await this.categoryRepository.save(updatedCategory);
     return this.mapCategory(saved);
   }
@@ -301,10 +304,24 @@ export class CategoriesService {
     return categories.map(category => this.mapCategory(category));
   }
 
-  async reorder(ids: string[]): Promise<void> {
-    const updatePromises = ids.map((id, index) => {
-      return this.categoryRepository.update(id, { sort_order: index + 1 });
-    });
-    await Promise.all(updatePromises);
+  async reorder(idsInOrder: string[], user: AccountEntity): Promise<void> {
+   const queryRunner = this.dataSource.createQueryRunner()
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
+    try {
+      for (let i = 0; i < idsInOrder.length; i++) {
+        await queryRunner.manager.update(CategoriesEntity, idsInOrder[i], {
+          sort_order: i + 1,
+          editor_id: user.id,
+        })
+      }
+      await queryRunner.commitTransaction()
+    } catch (error) {
+      await queryRunner.rollbackTransaction()
+      throw error
+    } finally {
+      await queryRunner.release()
+    }
   }
 }

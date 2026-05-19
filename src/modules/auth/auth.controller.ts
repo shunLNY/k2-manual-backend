@@ -36,7 +36,6 @@ export class AuthController extends BaseController {
   @Patch("logout")
   async logout(@Headers() headers: any) {
     console.log(headers)
-    // await this.logService.updateLogById(headers["session-id"]);
     return this.response(undefined, { title: "Success!", body: "logout successful." });
   }
 
