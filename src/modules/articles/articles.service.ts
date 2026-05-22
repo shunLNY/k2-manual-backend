@@ -380,7 +380,7 @@ export class ArticlesService {
   private generatePartImageSliderPath(oldPath: string) {
     const extensionName = oldPath.split('.').pop();
     return (
-      '/storage/blogs/thumbnail-image/' +
+      '/storage/articles/thumbnail_images/' +
       this.fileService.generateFilePrefix('P_') +
       '.' +
       extensionName

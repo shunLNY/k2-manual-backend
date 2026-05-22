@@ -25,44 +25,45 @@ export class AuthService {
     this.accountRepo = this.dataSource.getRepository(AccountEntity);
   }
   public async login(loginDTO: LoginDto, headers: any, ipAddress: any) {
-    const loginUser = await this.accountRepo.findOne({
-      where: {
-        email: loginDTO.email,
-      },
-    });
+    try {
+      const loginUser = await this.accountRepo.findOne({
+        where: {
+          email: loginDTO.email,
+        },
+      });
 
-    console.log(loginUser?.password, "........loginUser")
+      console.log(loginUser?.password, "........loginUser")
 
-    if (!loginUser) throw new UnauthorizedException('incorrect credentials');
+      if (!loginUser) throw new UnauthorizedException('incorrect credentials');
 
-    let admin: any;
+      let admin: any;
+      admin = loginUser;
 
+      console.log(loginUser, loginDTO)
+      if (!(await bcrypt.compare(loginDTO.password, admin.password)))
+        throw new UnauthorizedException('incorrect credentials');
 
+      // generate token and save
+      const { accessToken, refreshToken, accessTokenExpire, tokenId } =
+        await this.tokenService.createToken(admin, headers, ipAddress);
+      delete admin.password;
 
-    admin = loginUser;
+      // create new access log
 
+      const logData = {
+        userId: admin.id,
+        ipAddress,
+        tokenId,
+        deviceType: headers[DEVICE_TYPE_HEADER],
+        userAgent: headers['user-agent'],
+      };
+      // const { id: SESSION_ID } = await this.logService.createLog(logData);
 
-    console.log(loginUser, loginDTO)
-    if (!(await bcrypt.compare(loginDTO.password, admin.password)))
-      throw new UnauthorizedException('incorrect credentials');
-
-    // generate token and save
-    const { accessToken, refreshToken, accessTokenExpire, tokenId } =
-      await this.tokenService.createToken(admin, headers, ipAddress);
-    delete admin.password;
-
-    // create new access log
-
-    const logData = {
-      userId: admin.id,
-      ipAddress,
-      tokenId,
-      deviceType: headers[DEVICE_TYPE_HEADER],
-      userAgent: headers['user-agent'],
-    };
-    // const { id: SESSION_ID } = await this.logService.createLog(logData);
-
-    return { admin, accessToken, refreshToken, accessTokenExpire };
+      return { admin, accessToken, refreshToken, accessTokenExpire };
+    } catch (err) {
+      console.error("LOGIN EXCEPTION CAUGHT:", err);
+      throw err;
+    }
   }
 
   // get new token
