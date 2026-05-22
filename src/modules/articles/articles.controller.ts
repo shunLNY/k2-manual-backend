@@ -56,11 +56,11 @@ export class ArticlesController extends BaseController {
 
   @Get('paginate')
   @Serialize(AdminPaginateArticlesSerialize)
-  async paginateBlogs(
+  async paginateArticles(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: PaginateArticleDto,
   ) {
-    const { items, meta } = await this.articlesService.paginateBlogs(query);
+    const { items, meta } = await this.articlesService.paginateArticles(query);
     return this.paginateResponse(items, meta);
   }
 

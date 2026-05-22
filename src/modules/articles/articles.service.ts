@@ -97,7 +97,7 @@ export class ArticlesService {
 
   async duplicate(duplicateArticlesDto: DuplicateArticlesDto, user: AccountEntity) {
     const { ids } = duplicateArticlesDto;
-    const duplicatedBlogs: ArticleEntity[] = [];
+    const duplicatedArticles: ArticleEntity[] = [];
     const failedIds: { id: string; reason: string }[] = [];
 
     for (const id of ids) {
@@ -135,7 +135,7 @@ export class ArticlesService {
 
         await queryRunner.commitTransaction();
         const completeNewArticles = await this.findOne(savedArticles.id);
-        duplicatedBlogs.push(completeNewArticles);
+        duplicatedArticles.push(completeNewArticles);
       } catch (err) {
         console.error('Duplicating article failed:', err);
         if (queryRunner.isTransactionActive) {
@@ -147,7 +147,7 @@ export class ArticlesService {
       }
     }
 
-    return { duplicatedBlogs, failedIds };
+    return { duplicatedArticles, failedIds };
   }
 
   async findAll() {
@@ -163,7 +163,7 @@ export class ArticlesService {
     });
   }
 
-  async paginateBlogs(query: PaginateArticleDto) {
+  async paginateArticles(query: PaginateArticleDto) {
     const {
       page, limit, keyword, category_id,
       published_start_at, published_end_at,
@@ -284,14 +284,14 @@ export class ArticlesService {
     await queryRunner.startTransaction();
 
     try {
-      const oldBlog = await this.findOne(id);
+      const oldArticle = await this.findOne(id);
       const thumbnailPath = updateArticleDto.thumbnail_path;
       let finalThumbnailPath = thumbnailPath;
 
       if (thumbnailPath?.startsWith('/storage/_tmp/images')) {
-        if (oldBlog && oldBlog.thumbnail_path) {
+        if (oldArticle && oldArticle.thumbnail_path) {
           try {
-            this.fileService.delete(oldBlog.thumbnail_path);
+            this.fileService.delete(oldArticle.thumbnail_path);
           } catch (err) {
             console.log('Error deleting old thumbnail:', err);
           }
@@ -327,7 +327,7 @@ export class ArticlesService {
 
       if (updateArticleDto.content) {
         const newContent = await this.processContentImages(updateArticleDto.content);
-        await this.deleteUnusedImages(oldBlog.content, newContent);
+        await this.deleteUnusedImages(oldArticle.content, newContent);
         updatedBlogData.content = newContent;
         updatedBlogData.excerpt = this.generateExcerpt(newContent);
       }
