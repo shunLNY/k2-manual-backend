@@ -35,6 +35,9 @@ export class AdminPaginateArticlesSerialize {
   excerpt: string;
 
   @Expose()
+  description: string;
+
+  @Expose()
   @Type(() => User)
   creator: User;
 

@@ -15,6 +15,9 @@ export class GetArticleSerializer {
   excerpt: string;
 
   @Expose()
+  description: string;
+
+  @Expose()
   status: string;
 
   @Expose({ name: 'thumbnail_path' })

@@ -33,6 +33,9 @@ export class ArticleEntity {
   @Column('longtext')
   excerpt: string;
 
+  @Column({ type: 'longtext', nullable: true })
+  description: string;
+
   @Column({
     name: 'thumbnail_path',
     type: 'varchar',
@@ -72,7 +75,7 @@ export class ArticleEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @Column({ name: 'deleted_at', type: 'datetime', nullable: true })
+  @DeleteDateColumn({ name: 'deleted_at', type: 'datetime', nullable: true })
   deletedAt: Date;
 
   // --- Category Relation ---

@@ -69,12 +69,18 @@ export class ArticlesService {
         }
       }
 
+      const summaryText =
+        createArticleDto.description ??
+        createArticleDto.excerpt ??
+        this.generateExcerpt(processedContent || '');
+
       const articles = this.articlesRepo.create({
         id: generateId(),
         title: createArticleDto.title,
         status: dbStatus,
         content: processedContent,
-        excerpt: this.generateExcerpt(processedContent || ''),
+        description: summaryText,
+        excerpt: summaryText,
         thumbnail_path: finalThumbnailPath,
         published_start_at: publishStartAt ? new Date(publishStartAt) : new Date(),
         published_end_at: publishEndAt ? new Date(publishEndAt) : null,
@@ -121,6 +127,7 @@ export class ArticlesService {
           title: `${originalArticles.title} - コピー`,
           content: originalArticles.content,
           excerpt: originalArticles.excerpt,
+          description: originalArticles.description ?? originalArticles.excerpt,
           thumbnail_path: originalArticles.thumbnail_path,
           status: 'private',
           published_start_at: originalArticles.published_start_at,
@@ -325,11 +332,23 @@ export class ArticlesService {
         updatedArticleData.published_end_at = publishEndAt ? new Date(publishEndAt) : null;
       }
 
+      if (updateArticleDto.description !== undefined) {
+        updatedArticleData.description = updateArticleDto.description;
+        updatedArticleData.excerpt = updateArticleDto.description;
+      } else if (updateArticleDto.excerpt !== undefined) {
+        updatedArticleData.description = updateArticleDto.excerpt;
+        updatedArticleData.excerpt = updateArticleDto.excerpt;
+      }
+
       if (updateArticleDto.content) {
         const newContent = await this.processContentImages(updateArticleDto.content);
         await this.deleteUnusedImages(oldArticle.content, newContent);
         updatedArticleData.content = newContent;
-        updatedArticleData.excerpt = this.generateExcerpt(newContent);
+        if (updateArticleDto.description === undefined && updateArticleDto.excerpt === undefined) {
+          const autoExcerpt = this.generateExcerpt(newContent);
+          updatedArticleData.excerpt = autoExcerpt;
+          updatedArticleData.description = autoExcerpt;
+        }
       }
 
       await queryRunner.manager.update(ArticleEntity, id, updatedArticleData);
@@ -389,13 +408,28 @@ export class ArticlesService {
 
   private extractImagePaths(htmlContent: string): string[] {
     if (!htmlContent) return [];
-    const imgTagRegex = /<img[^>]+src="([^">]+)"/g;
-    const paths = [];
+    const imgTagRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    const paths: string[] = [];
     let match;
     while ((match = imgTagRegex.exec(htmlContent)) !== null) {
-      paths.push(match[1]);
+      paths.push(this.normalizeImagePath(match[1]));
     }
     return paths;
+  }
+
+  private normalizeImagePath(src: string): string {
+    if (!src) return src;
+    if (src.includes('/files/storage/')) {
+      return src.substring(src.indexOf('/storage/'));
+    }
+    if (src.includes('/files/image/storage/')) {
+      return src.substring(src.indexOf('/storage/'));
+    }
+    const storageIndex = src.indexOf('/storage/');
+    if (storageIndex >= 0) {
+      return src.substring(storageIndex);
+    }
+    return src;
   }
 
   private async processContentImages(content: string): Promise<string> {
@@ -434,8 +468,9 @@ export class ArticlesService {
     for (const oldPath of oldPaths) {
       if (!newPaths.includes(oldPath)) {
         try {
-          if (oldPath.startsWith('/storage/')) {
-            this.fileService.delete(oldPath);
+          const storagePath = this.normalizeImagePath(oldPath);
+          if (storagePath.startsWith('/storage/')) {
+            this.fileService.delete(storagePath);
           }
         } catch (error) {
           console.error(`Error in deleting image: ${oldPath}`, error);

@@ -23,7 +23,11 @@ export class CreateArticleDto {
 
   @IsOptional()
   @IsString()
-  excerpt?: string; // '概要' (Summary/Description)
+  excerpt?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string; // 概要
 
   @IsOptional()
   @IsString()
