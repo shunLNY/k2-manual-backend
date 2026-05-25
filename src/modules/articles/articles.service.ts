@@ -310,7 +310,7 @@ export class ArticlesService {
         dbStatus = 'public';
       }
 
-      const updatedBlogData: any = {
+      const updatedArticleData: any = {
         title: updateArticleDto.title,
         status: dbStatus,
         thumbnail_path: finalThumbnailPath,
@@ -319,20 +319,20 @@ export class ArticlesService {
       };
 
       if (publishStartAt !== undefined) {
-        updatedBlogData.published_start_at = publishStartAt ? new Date(publishStartAt) : null;
+        updatedArticleData.published_start_at = publishStartAt ? new Date(publishStartAt) : null;
       }
       if (publishEndAt !== undefined) {
-        updatedBlogData.published_end_at = publishEndAt ? new Date(publishEndAt) : null;
+        updatedArticleData.published_end_at = publishEndAt ? new Date(publishEndAt) : null;
       }
 
       if (updateArticleDto.content) {
         const newContent = await this.processContentImages(updateArticleDto.content);
         await this.deleteUnusedImages(oldArticle.content, newContent);
-        updatedBlogData.content = newContent;
-        updatedBlogData.excerpt = this.generateExcerpt(newContent);
+        updatedArticleData.content = newContent;
+        updatedArticleData.excerpt = this.generateExcerpt(newContent);
       }
 
-      await queryRunner.manager.update(ArticleEntity, id, updatedBlogData);
+      await queryRunner.manager.update(ArticleEntity, id, updatedArticleData);
 
       await queryRunner.commitTransaction();
       return this.findOne(id);
