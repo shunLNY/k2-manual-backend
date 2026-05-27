@@ -9,9 +9,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { generateId, paginate, Pagination } from 'src/common/service/helper.service';
+import {
+  generateId,
+  paginate,
+  Pagination,
+} from 'src/common/service/helper.service';
 import { ArticleEntity } from './entities/article.entity';
-import { AccountEntity, AccountRole } from '../accounts/entities/account.entity';
+import {
+  AccountEntity,
+  AccountRole,
+} from '../accounts/entities/account.entity';
 import { FileService } from 'src/common/service/file.service';
 import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
@@ -35,9 +42,18 @@ export class ArticlesService {
 
   async create(createArticleDto: CreateArticleDto, user: AccountEntity) {
     const rawDto = createArticleDto as any;
-    const category_id = rawDto.category_id || (rawDto.categoryIds && rawDto.categoryIds[0]);
-    const publishStartAt = rawDto.publish_start_at || rawDto.published_start_at || rawDto.publishStartAt || rawDto.publishedStartAt;
-    const publishEndAt = rawDto.publish_end_at || rawDto.published_end_at || rawDto.publishEndAt || rawDto.publishedEndAt;
+    const category_id =
+      rawDto.category_id || (rawDto.categoryIds && rawDto.categoryIds[0]);
+    const publishStartAt =
+      rawDto.publish_start_at ||
+      rawDto.published_start_at ||
+      rawDto.publishStartAt ||
+      rawDto.publishedStartAt;
+    const publishEndAt =
+      rawDto.publish_end_at ||
+      rawDto.published_end_at ||
+      rawDto.publishEndAt ||
+      rawDto.publishedEndAt;
 
     let processedContent = createArticleDto.content;
     if (processedContent) {
@@ -45,7 +61,9 @@ export class ArticlesService {
     }
 
     if (!user || !user.id) {
-      throw new BadRequestException('Creator user is required to create an article');
+      throw new BadRequestException(
+        'Creator user is required to create an article',
+      );
     }
 
     let dbStatus = createArticleDto.status as string;
@@ -82,7 +100,9 @@ export class ArticlesService {
         description: summaryText,
         excerpt: summaryText,
         thumbnail_path: finalThumbnailPath,
-        published_start_at: publishStartAt ? new Date(publishStartAt) : new Date(),
+        published_start_at: publishStartAt
+          ? new Date(publishStartAt)
+          : new Date(),
         published_end_at: publishEndAt ? new Date(publishEndAt) : null,
         category_id: category_id,
         creator_id: user.id,
@@ -101,7 +121,10 @@ export class ArticlesService {
     }
   }
 
-  async duplicate(duplicateArticlesDto: DuplicateArticlesDto, user: AccountEntity) {
+  async duplicate(
+    duplicateArticlesDto: DuplicateArticlesDto,
+    user: AccountEntity,
+  ) {
     const { ids } = duplicateArticlesDto;
     const duplicatedArticles: ArticleEntity[] = [];
     const failedIds: { id: string; reason: string }[] = [];
@@ -162,7 +185,7 @@ export class ArticlesService {
       relations: ['creator', 'editor', 'category'],
       order: { createdAt: 'DESC' },
     });
-    return list.map(item => {
+    return list.map((item) => {
       if (item.status === 'public') {
         item.status = 'published';
       }
@@ -170,61 +193,105 @@ export class ArticlesService {
     });
   }
 
+  async findPublicArticles() {
+    const list = await this.articlesRepo.find({
+      where: { status: 'public' },
+      relations: ['creator', 'editor', 'category'],
+      order: { createdAt: 'DESC' },
+    });
+    return list.map((item) => {
+      return {
+        ...item,
+        status: 'published',
+        categories: item.category
+          ? [
+              {
+                id: item.category.id,
+                category_name: item.category.category_name,
+              },
+            ]
+          : [],
+      };
+    });
+  }
+
   async paginateArticles(query: PaginateArticleDto) {
     const {
-      page, limit, keyword, category_id,
-      published_start_at, published_end_at,
-      creator_name, editor_name,
-      isPublished, isPrivate
+      page,
+      limit,
+      keyword,
+      category_id,
+      published_start_at,
+      published_end_at,
+      creator_name,
+      editor_name,
+      isPublished,
+      isPrivate,
     } = query;
 
-    const queryBuilder = this.articlesRepo.createQueryBuilder('article')
+    const queryBuilder = this.articlesRepo
+      .createQueryBuilder('article')
       .leftJoinAndSelect('article.category', 'category')
       .leftJoinAndSelect('article.creator', 'creator')
       .leftJoinAndSelect('article.editor', 'editor')
       .orderBy('article.createdAt', 'DESC');
 
     if (keyword) {
-      queryBuilder.andWhere(new Brackets(qb => {
-        qb.where('article.title LIKE :keyword', { keyword: `%${keyword}%` })
-          .orWhere('article.content LIKE :keyword', { keyword: `%${keyword}%` });
-      }));
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('article.title LIKE :keyword', {
+            keyword: `%${keyword}%`,
+          }).orWhere('article.content LIKE :keyword', {
+            keyword: `%${keyword}%`,
+          });
+        }),
+      );
     }
 
     if (category_id) {
-      const categoryIds = Array.isArray(category_id) ? category_id : [category_id];
+      const categoryIds = Array.isArray(category_id)
+        ? category_id
+        : [category_id];
       if (categoryIds.length > 0) {
-        queryBuilder.andWhere('category.id IN (:...categoryIds)', { categoryIds });
+        queryBuilder.andWhere('category.id IN (:...categoryIds)', {
+          categoryIds,
+        });
       }
     }
 
     if (published_start_at) {
       queryBuilder.andWhere(
         '(article.published_end_at IS NULL OR article.published_end_at >= :published_start_at)',
-        { published_start_at }
+        { published_start_at },
       );
     }
 
     if (published_end_at) {
       queryBuilder.andWhere(
         'COALESCE(article.published_start_at, article.created_at) <= :published_end_at',
-        { published_end_at }
+        { published_end_at },
       );
     }
 
     if (creator_name) {
-      queryBuilder.andWhere('creator.account_name LIKE :creator_name', { creator_name: `%${creator_name}%` });
+      queryBuilder.andWhere('creator.account_name LIKE :creator_name', {
+        creator_name: `%${creator_name}%`,
+      });
     }
 
     if (editor_name) {
-      queryBuilder.andWhere('editor.account_name LIKE :editor_name', { editor_name: `%${editor_name}%` });
+      queryBuilder.andWhere('editor.account_name LIKE :editor_name', {
+        editor_name: `%${editor_name}%`,
+      });
     }
 
     const statusConditions: string[] = [];
     const params = {};
 
     if (isPublished) {
-      statusConditions.push('(article.status = :publicStatus AND (article.published_start_at <= NOW() OR article.published_start_at IS NULL))');
+      statusConditions.push(
+        '(article.status = :publicStatus AND (article.published_start_at <= NOW() OR article.published_start_at IS NULL))',
+      );
       params['publicStatus'] = 'public';
     }
     if (isPrivate) {
@@ -232,18 +299,27 @@ export class ArticlesService {
       params['privateStatus'] = 'private';
     }
     if (statusConditions.length > 0) {
-      queryBuilder.andWhere(new Brackets(qb => {
-        qb.where(statusConditions.join(' OR '), params);
-      }));
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where(statusConditions.join(' OR '), params);
+        }),
+      );
     }
 
-    const paginatedResult = await paginate(queryBuilder, { page: Number(page) || 1, limit: Number(limit) || 10 });
+    const paginatedResult = await paginate(queryBuilder, {
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
+    });
 
-    const items = paginatedResult.items.map(article => {
-      const categories = article.category ? [{
-        id: article.category.id,
-        category_name: article.category.category_name,
-      }] : [];
+    const items = paginatedResult.items.map((article) => {
+      const categories = article.category
+        ? [
+            {
+              id: article.category.id,
+              category_name: article.category.category_name,
+            },
+          ]
+        : [];
 
       let mappedStatus = article.status;
       if (mappedStatus === 'public') {
@@ -253,8 +329,12 @@ export class ArticlesService {
       return {
         ...article,
         status: mappedStatus,
-        published_start_at: article.published_start_at ? dayjs(article.published_start_at).format('YYYY-MM-DD') : null,
-        published_end_at: article.published_end_at ? dayjs(article.published_end_at).format('YYYY-MM-DD') : null,
+        published_start_at: article.published_start_at
+          ? dayjs(article.published_start_at).format('YYYY-MM-DD')
+          : null,
+        published_end_at: article.published_end_at
+          ? dayjs(article.published_end_at).format('YYYY-MM-DD')
+          : null,
         created_at: dayjs(article.createdAt).format('YYYY-MM-DD'),
         categories: categories,
       };
@@ -280,11 +360,26 @@ export class ArticlesService {
     return article;
   }
 
-  async update(id: string, updateArticleDto: UpdateArticleDto, user: AccountEntity) {
+  async update(
+    id: string,
+    updateArticleDto: UpdateArticleDto,
+    user: AccountEntity,
+  ) {
     const rawDto = updateArticleDto as any;
-    const categoryId = rawDto.categoryId || rawDto.category_id || (rawDto.categoryIds && rawDto.categoryIds[0]);
-    const publishStartAt = rawDto.publish_start_at || rawDto.published_start_at || rawDto.publishStartAt || rawDto.publishedStartAt;
-    const publishEndAt = rawDto.publish_end_at || rawDto.published_end_at || rawDto.publishEndAt || rawDto.publishedEndAt;
+    const categoryId =
+      rawDto.categoryId ||
+      rawDto.category_id ||
+      (rawDto.categoryIds && rawDto.categoryIds[0]);
+    const publishStartAt =
+      rawDto.publish_start_at ||
+      rawDto.published_start_at ||
+      rawDto.publishStartAt ||
+      rawDto.publishedStartAt;
+    const publishEndAt =
+      rawDto.publish_end_at ||
+      rawDto.published_end_at ||
+      rawDto.publishEndAt ||
+      rawDto.publishedEndAt;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -326,10 +421,14 @@ export class ArticlesService {
       };
 
       if (publishStartAt !== undefined) {
-        updatedArticleData.published_start_at = publishStartAt ? new Date(publishStartAt) : null;
+        updatedArticleData.published_start_at = publishStartAt
+          ? new Date(publishStartAt)
+          : null;
       }
       if (publishEndAt !== undefined) {
-        updatedArticleData.published_end_at = publishEndAt ? new Date(publishEndAt) : null;
+        updatedArticleData.published_end_at = publishEndAt
+          ? new Date(publishEndAt)
+          : null;
       }
 
       if (updateArticleDto.description !== undefined) {
@@ -341,10 +440,15 @@ export class ArticlesService {
       }
 
       if (updateArticleDto.content) {
-        const newContent = await this.processContentImages(updateArticleDto.content);
+        const newContent = await this.processContentImages(
+          updateArticleDto.content,
+        );
         await this.deleteUnusedImages(oldArticle.content, newContent);
         updatedArticleData.content = newContent;
-        if (updateArticleDto.description === undefined && updateArticleDto.excerpt === undefined) {
+        if (
+          updateArticleDto.description === undefined &&
+          updateArticleDto.excerpt === undefined
+        ) {
           const autoExcerpt = this.generateExcerpt(newContent);
           updatedArticleData.excerpt = autoExcerpt;
           updatedArticleData.description = autoExcerpt;
@@ -381,7 +485,9 @@ export class ArticlesService {
 
     const result = await this.articlesRepo.softDelete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`ID "${id}" のブログが見つかりませんでした。`);
+      throw new NotFoundException(
+        `ID "${id}" のブログが見つかりませんでした。`,
+      );
     }
 
     return { message: `ID "${id}" の記事が正常に削除されました。` };
@@ -392,7 +498,9 @@ export class ArticlesService {
       return '';
     }
     const replacedImg = htmlContent.replace(/<img[^>]*>/g, ' [画像] ');
-    const plainText = replacedImg.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ');
+    const plainText = replacedImg
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ');
     return plainText.substring(0, length);
   }
 
