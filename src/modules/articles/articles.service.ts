@@ -182,7 +182,7 @@ export class ArticlesService {
 
   async findAll() {
     const list = await this.articlesRepo.find({
-      relations: ['creator', 'editor', 'category'],
+      relations: ['creator', 'editor', 'category', 'category.parentCategory'],
       order: { createdAt: 'DESC' },
     });
     return list.map((item) => {
@@ -196,7 +196,7 @@ export class ArticlesService {
   async findPublicArticles() {
     const list = await this.articlesRepo.find({
       where: { status: 'public' },
-      relations: ['creator', 'editor', 'category'],
+      relations: ['creator', 'editor', 'category', 'category.parentCategory'],
       order: { createdAt: 'DESC' },
     });
     return list.map((item) => {
@@ -232,6 +232,7 @@ export class ArticlesService {
     const queryBuilder = this.articlesRepo
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
       .leftJoinAndSelect('article.creator', 'creator')
       .leftJoinAndSelect('article.editor', 'editor')
       .orderBy('article.createdAt', 'DESC');
@@ -349,7 +350,8 @@ export class ArticlesService {
   async findOne(id: string): Promise<ArticleEntity> {
     const article = await this.articleRepository.findOne({
       where: { id },
-      relations: ['category', 'creator', 'editor'],
+      // 💡 အောက်ပါအတိုင်း 'category.parentCategory' ကို ထပ်ဖြည့်ပေးပါ
+      relations: ['category', 'category.parentCategory', 'creator', 'editor'],
     });
     if (!article) {
       throw new NotFoundException(`Article with ID ${id} not found`);
