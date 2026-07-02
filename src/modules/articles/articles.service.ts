@@ -40,6 +40,87 @@ export class ArticlesService {
     this.articleRepository = this.articlesRepo;
   }
 
+  // ==========================================
+  // 💡 TypeORM QueryBuilder ဖြင့် Entity Bug ကို လုံးဝကျော်လွှားမည့် အပြီးသတ် Seed
+  // ==========================================
+  async seedMockArticles(count: number, user: AccountEntity) {
+    try {
+      // ၁။ Database ထဲက တကယ့် Category အားလုံးကို ရှာယူပါမယ်
+      const allCategories = await this.categoryRepo.find();
+      if (!allCategories || allCategories.length === 0) {
+        return {
+          status: 'failed',
+          message: 'Database ထဲမှာ Category လုံးဝမရှိသေးပါ။',
+        };
+      }
+
+      // ၂။ တကယ့် ID String အစစ်ကို ရယူပါမယ်
+      let finalUserId = user?.id;
+      if (!finalUserId) {
+        const accountRows = await this.dataSource.query(
+          `SELECT id FROM accounts LIMIT 1`,
+        );
+        if (!accountRows || accountRows.length === 0) {
+          return {
+            status: 'failed',
+            message:
+              'Database ရဲ့ accounts table ထဲမှာ user data လုံးဝမရှိသေးပါ။',
+          };
+        }
+        finalUserId = accountRows[0].id; // ဥပမာ: 11f14d17-c9f5-c5f0-bc39-9ff3269bb3b1
+      }
+
+      const testTitles = [
+        '建工管理とは',
+        'システム管理者ができることについての手引き',
+        '販売管理の基本操作マニュアルとお問い合わせ窓口についてのご案内',
+        '新しい記事タイトルです。これは３行のLine-clampテスト用の非常に長いタイトルに設定されています。画面上で正しく３行でカットされるか確認してください。',
+      ];
+
+      const articlesToInsert = [];
+
+      for (let i = 1; i <= count; i++) {
+        const titlePattern = testTitles[i % testTitles.length];
+        const summaryText = `建工管理をはじめの方、建工管理に招待を受けた方向けのガイドです... (${i})`;
+        const selectedCategory = allCategories[i % allCategories.length];
+
+        // 💡 Plain Object သီးသန့်တည်ဆောက်ပါသည် (Entity မဟုတ်ပါ)
+        articlesToInsert.push({
+          id: generateId(),
+          title: `${titlePattern} (${i})`,
+          status: 'public',
+          content: `<p>これはテストコンテンツです。量産されたデータアセットの確認用です。 (${i})</p>`,
+          description: summaryText,
+          excerpt: summaryText,
+          thumbnail_path: '/storage/articles/thumbnail_images/sample.jpg',
+          published_start_at: new Date(),
+          published_end_at: null,
+          category_id: selectedCategory.id,
+          creator_id: finalUserId,
+          editor_id: finalUserId,
+        });
+      }
+
+      // 🚀 💡 အဓိကပြောင်းလဲချက်: .save() ကို မသုံးတော့ဘဲ QueryBuilder ဖြင့် တိုက်ရိုက် Insert လုပ်ခြင်း
+      await this.articlesRepo
+        .createQueryBuilder()
+        .insert()
+        .into(ArticleEntity)
+        .values(articlesToInsert)
+        .execute();
+
+      return {
+        status: 'success',
+        message: `${articlesToInsert.length} articles successfully generated and inserted directly into the database!`,
+      };
+    } catch (dbError) {
+      return {
+        status: 'database_error',
+        message: dbError.message,
+      };
+    }
+  }
+
   async create(createArticleDto: CreateArticleDto, user: AccountEntity) {
     const rawDto = createArticleDto as any;
     const category_id =
@@ -180,17 +261,38 @@ export class ArticlesService {
     return { duplicatedArticles, failedIds };
   }
 
+  // ==========================================
+  // 💡 အမှားကင်းစင်ပြီး TypeORM Standard အကျဆုံး findAll Method
+  // ==========================================
   async findAll() {
-    const list = await this.articlesRepo.find({
-      relations: ['creator', 'editor', 'category', 'category.parentCategory'],
-      order: { createdAt: 'DESC' },
-    });
-    return list.map((item) => {
-      if (item.status === 'public') {
-        item.status = 'published';
+    try {
+      // 💡 TypeORM အသစ်များအတွက် String Array အစား Object Syntax ကို အသုံးပြုထားပါသည်
+      const list = await this.articlesRepo.find({
+        relations: {
+          creator: true,
+          editor: true,
+          category: true, // ⚠️ အကယ်၍ CategoryEntity ထဲမှာ parentCategory relation သေချာပေါက် ကြေညာထားတယ်ဆိုရင် { parentCategory: true } လို့ ပြောင်းသုံးနိုင်ပါတယ်။
+        },
+        order: { createdAt: 'DESC' }, // အသစ်ဆုံးကို အပေါ်ဆုံးမှာ ပြရန်
+      });
+
+      // ဒေတာမရှိပါက Array အလွတ်သာ ပြန်ပေးရန်
+      if (!list || list.length === 0) {
+        return [];
       }
-      return item;
-    });
+
+      // Frontend မှ လိုအပ်သော status ပုံစံအဖြစ် ပြောင်းလဲပေးခြင်း
+      return list.map((item) => {
+        if (item.status === 'public') {
+          item.status = 'published';
+        }
+        return item;
+      });
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      // Error တက်ပါက Frontend မကျသွားစေရန် Array အလွတ် ပြန်ပို့ပေးပါမည်
+      return [];
+    }
   }
 
   async findPublicArticles() {

@@ -13,7 +13,7 @@ import { AccountEntity } from '../../accounts/entities/account.entity';
 
 export enum ArticleStatus {
   PUBLISHED = 'published',
-  PRIVATE = 'private'
+  PRIVATE = 'private',
 }
 
 @Entity('articles')
