@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
@@ -23,7 +24,7 @@ import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { AdminPaginateArticlesSerialize } from './serialize/admin-paginate.serialize';
 import { Serialize } from 'src/common/interceptor/serialize.interceptor';
 
-@Controller()
+@Controller('articles')
 export class ArticlesController extends BaseController {
   constructor(private readonly articlesService: ArticlesService) {
     super();
@@ -32,6 +33,22 @@ export class ArticlesController extends BaseController {
   // =======================================================
   // PUBLIC ROUTES (Client)
   // =======================================================
+
+  @Post('seed')
+  async seedArticles(@Query('count') count: string, @Req() req: any) {
+    const articleCount = Number(count) || 50;
+
+    // 💡 ပြင်ဆင်ချက်: Mock ID ကြီးကို မသုံးတော့ဘဲ Token မပါရင် null လို့ပဲ သတ်မှတ်ပေးလိုက်ပါမည်။
+    // သို့မှသာ Service ဖိုင်ထဲက Database အစစ်ဆွဲထုတ်တဲ့စနစ် အသက်ဝင်လာမှာ ဖြစ်ပါတယ်။
+    const user = req.user || null;
+
+    return await this.articlesService.seedMockArticles(articleCount, user);
+  }
+
+  @Get()
+  async findAllArticles() {
+    return await this.articlesService.findAll();
+  }
 
   @Get('/articles')
   async findPublicAll() {
