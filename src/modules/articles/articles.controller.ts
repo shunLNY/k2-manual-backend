@@ -37,9 +37,6 @@ export class ArticlesController extends BaseController {
   @Post('seed')
   async seedArticles(@Query('count') count: string, @Req() req: any) {
     const articleCount = Number(count) || 50;
-
-    // 💡 ပြင်ဆင်ချက်: Mock ID ကြီးကို မသုံးတော့ဘဲ Token မပါရင် null လို့ပဲ သတ်မှတ်ပေးလိုက်ပါမည်။
-    // သို့မှသာ Service ဖိုင်ထဲက Database အစစ်ဆွဲထုတ်တဲ့စနစ် အသက်ဝင်လာမှာ ဖြစ်ပါတယ်။
     const user = req.user || null;
 
     return await this.articlesService.seedMockArticles(articleCount, user);
@@ -50,13 +47,13 @@ export class ArticlesController extends BaseController {
     return await this.articlesService.findAll();
   }
 
-  @Get('/articles')
+  @Get('/')
   async findPublicAll() {
     const data = await this.articlesService.findPublicArticles();
     return this.response(data);
   }
 
-  @Get('/articles/:id')
+  @Get(':id')
   findPublicOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.articlesService.findOne(id);
   }
