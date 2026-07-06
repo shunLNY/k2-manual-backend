@@ -4,14 +4,13 @@ import * as fs from 'fs';
 import { ExtractJwt } from 'passport-jwt';
 
 export default () => {
-
   const jwtPrivateKey = fs.readFileSync('./jwt_private_key.pem', 'utf8');
   const jwtAlgorithm = 'RS256';
 
   const defaultOptions: DataSourceOptions = {
     type: 'mysql',
     host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 3308),
+    port: Number(process.env.DB_PORT || 3306),
     username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,

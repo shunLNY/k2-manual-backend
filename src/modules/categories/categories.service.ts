@@ -99,6 +99,11 @@ export class CategoriesService {
       .leftJoinAndSelect('childLevel4.creator', 'childLevel4Creator')
       .leftJoinAndSelect('childLevel4.editor', 'childLevel4Editor')
 
+      .leftJoinAndSelect('category.articles', 'articles')
+      .leftJoinAndSelect('childLevel2.articles', 'childLevel2Articles')
+      .leftJoinAndSelect('childLevel3.articles', 'childLevel3Articles')
+      .leftJoinAndSelect('childLevel4.articles', 'childLevel4Articles')
+
       .orderBy('category.sort_order', 'ASC')
       .addOrderBy('childLevel2.sort_order', 'ASC')
       .addOrderBy('childLevel3.sort_order', 'ASC')
@@ -222,6 +227,7 @@ export class CategoriesService {
   private mapCategory(category: any) {
     return {
       ...category,
+      article_count: Array.isArray(category.articles) ? category.articles.length : 0,
       child_categories: category.children 
         ? category.children.map((child: any) => this.mapCategory(child)) 
         : []
