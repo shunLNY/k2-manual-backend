@@ -40,21 +40,16 @@ export class ArticlesService {
     this.articleRepository = this.articlesRepo;
   }
 
-  // ==========================================
-  // 💡 TypeORM QueryBuilder ဖြင့် Entity Bug ကို လုံးဝကျော်လွှားမည့် အပြီးသတ် Seed
-  // ==========================================
   async seedMockArticles(count: number, user: AccountEntity) {
     try {
-      // ၁။ Database ထဲက တကယ့် Category အားလုံးကို ရှာယူပါမယ်
       const allCategories = await this.categoryRepo.find();
       if (!allCategories || allCategories.length === 0) {
         return {
           status: 'failed',
-          message: 'Database ထဲမှာ Category လုံးဝမရှိသေးပါ။',
+          message: 'No Category',
         };
       }
 
-      // ၂။ တကယ့် ID String အစစ်ကို ရယူပါမယ်
       let finalUserId = user?.id;
       if (!finalUserId) {
         const accountRows = await this.dataSource.query(
@@ -64,10 +59,10 @@ export class ArticlesService {
           return {
             status: 'failed',
             message:
-              'Database ရဲ့ accounts table ထဲမှာ user data လုံးဝမရှိသေးပါ။',
+              'not found user data',
           };
         }
-        finalUserId = accountRows[0].id; // ဥပမာ: 11f14d17-c9f5-c5f0-bc39-9ff3269bb3b1
+        finalUserId = accountRows[0].id;
       }
 
       const testTitles = [
@@ -84,7 +79,7 @@ export class ArticlesService {
         const summaryText = `建工管理をはじめの方、建工管理に招待を受けた方向けのガイドです... (${i})`;
         const selectedCategory = allCategories[i % allCategories.length];
 
-        // 💡 Plain Object သီးသန့်တည်ဆောက်ပါသည် (Entity မဟုတ်ပါ)
+        // Plain Object
         articlesToInsert.push({
           id: generateId(),
           title: `${titlePattern} (${i})`,
@@ -101,7 +96,6 @@ export class ArticlesService {
         });
       }
 
-      // 🚀 💡 အဓိကပြောင်းလဲချက်: .save() ကို မသုံးတော့ဘဲ QueryBuilder ဖြင့် တိုက်ရိုက် Insert လုပ်ခြင်း
       await this.articlesRepo
         .createQueryBuilder()
         .insert()
@@ -261,27 +255,25 @@ export class ArticlesService {
     return { duplicatedArticles, failedIds };
   }
 
-  // ==========================================
-  // 💡 အမှားကင်းစင်ပြီး TypeORM Standard အကျဆုံး findAll Method
-  // ==========================================
   async findAll() {
     try {
-      // 💡 TypeORM အသစ်များအတွက် String Array အစား Object Syntax ကို အသုံးပြုထားပါသည်
       const list = await this.articlesRepo.find({
         relations: {
           creator: true,
           editor: true,
-          category: true, // ⚠️ အကယ်၍ CategoryEntity ထဲမှာ parentCategory relation သေချာပေါက် ကြေညာထားတယ်ဆိုရင် { parentCategory: true } လို့ ပြောင်းသုံးနိုင်ပါတယ်။
+          category: {
+            parentCategory: {
+              parentCategory: true,
+            },
+          },
         },
-        order: { createdAt: 'DESC' }, // အသစ်ဆုံးကို အပေါ်ဆုံးမှာ ပြရန်
+        order: { createdAt: 'DESC' },
       });
 
-      // ဒေတာမရှိပါက Array အလွတ်သာ ပြန်ပေးရန်
       if (!list || list.length === 0) {
         return [];
       }
 
-      // Frontend မှ လိုအပ်သော status ပုံစံအဖြစ် ပြောင်းလဲပေးခြင်း
       return list.map((item) => {
         if (item.status === 'public') {
           item.status = 'published';
@@ -290,7 +282,6 @@ export class ArticlesService {
       });
     } catch (error) {
       console.error('Error fetching articles:', error);
-      // Error တက်ပါက Frontend မကျသွားစေရန် Array အလွတ် ပြန်ပို့ပေးပါမည်
       return [];
     }
   }
@@ -298,7 +289,13 @@ export class ArticlesService {
   async findPublicArticles() {
     const list = await this.articlesRepo.find({
       where: { status: 'public' },
-      relations: ['creator', 'editor', 'category', 'category.parentCategory'],
+      relations: [
+        'creator',
+        'editor',
+        'category',
+        'category.parentCategory',
+        'category.parentCategory.parentCategory',
+      ],
       order: { createdAt: 'DESC' },
     });
     return list.map((item) => {
@@ -335,6 +332,7 @@ export class ArticlesService {
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.category', 'category')
       .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('parentCategory.parentCategory', 'grandParentCategory')
       .leftJoinAndSelect('article.creator', 'creator')
       .leftJoinAndSelect('article.editor', 'editor')
       .orderBy('article.createdAt', 'DESC');
@@ -452,8 +450,13 @@ export class ArticlesService {
   async findOne(id: string): Promise<ArticleEntity> {
     const article = await this.articleRepository.findOne({
       where: { id },
-      // 💡 အောက်ပါအတိုင်း 'category.parentCategory' ကို ထပ်ဖြည့်ပေးပါ
-      relations: ['category', 'category.parentCategory', 'creator', 'editor'],
+      relations: [
+        'category',
+        'category.parentCategory',
+        'category.parentCategory.parentCategory',
+        'creator',
+        'editor',
+      ],
     });
     if (!article) {
       throw new NotFoundException(`Article with ID ${id} not found`);
