@@ -39,11 +39,6 @@ export class PublicArticlesController extends BaseController {
   }
 
   @Get()
-  async findAllArticles() {
-    return await this.articlesService.findAll();
-  }
-
-  @Get('/')
   async findPublicAll() {
     const data = await this.articlesService.findPublicArticles();
     return this.response(data);
