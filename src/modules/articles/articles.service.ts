@@ -58,8 +58,7 @@ export class ArticlesService {
         if (!accountRows || accountRows.length === 0) {
           return {
             status: 'failed',
-            message:
-              'not found user data',
+            message: 'not found user data',
           };
         }
         finalUserId = accountRows[0].id;
@@ -187,6 +186,9 @@ export class ArticlesService {
       const savedArticles = await queryRunner.manager.save(articles);
 
       await queryRunner.commitTransaction();
+      if (category_id) {
+        await this.syncCategoryArticleCount(category_id);
+      }
       return this.findOne(savedArticles.id);
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -239,6 +241,9 @@ export class ArticlesService {
         const savedArticles = await queryRunner.manager.save(newArticles);
 
         await queryRunner.commitTransaction();
+        if (newArticlesData.category_id) {
+          await this.syncCategoryArticleCount(newArticlesData.category_id);
+        }
         const completeNewArticles = await this.findOne(savedArticles.id);
         duplicatedArticles.push(completeNewArticles);
       } catch (err) {
@@ -561,10 +566,16 @@ export class ArticlesService {
           updatedArticleData.description = autoExcerpt;
         }
       }
-
+      const oldCategoryId = oldArticle.category_id;
       await queryRunner.manager.update(ArticleEntity, id, updatedArticleData);
 
       await queryRunner.commitTransaction();
+      if (oldCategoryId && oldCategoryId !== categoryId) {
+        await this.syncCategoryArticleCount(oldCategoryId);
+      }
+      if (categoryId) {
+        await this.syncCategoryArticleCount(categoryId);
+      }
       return this.findOne(id);
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -589,12 +600,14 @@ export class ArticlesService {
         console.log('Error deleting thumbnail file on removal:', err);
       }
     }
-
+    const categoryId = articleToDelete.category_id;
     const result = await this.articlesRepo.softDelete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(
-        `ID "${id}" のブログが見つかりませんでした。`,
-      );
+      throw new NotFoundException(`ID "${id}" の記事が見つかりませんでした。`);
+    }
+
+    if (categoryId) {
+      await this.syncCategoryArticleCount(categoryId);
     }
 
     return { message: `ID "${id}" の記事が正常に削除されました。` };
@@ -692,5 +705,17 @@ export class ArticlesService {
         }
       }
     }
+  }
+
+  private async syncCategoryArticleCount(categoryId: string): Promise<void> {
+    if (!categoryId) return;
+
+    const articleCount = await this.articlesRepo.count({
+      where: { category_id: categoryId },
+    });
+
+    await this.categoryRepo.update(categoryId, {
+      number_of_articles_used: articleCount,
+    });
   }
 }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, IsNull, Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -16,17 +20,21 @@ export class CategoriesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createCategoryDto: CreateCategoryDto, user: AccountEntity): Promise<CategoriesEntity> {
-    const { parent_category_id, sort_order,creator_id,editor_id } = createCategoryDto;
+  async create(
+    createCategoryDto: CreateCategoryDto,
+    user: AccountEntity,
+  ): Promise<CategoriesEntity> {
+    const { parent_category_id, sort_order, creator_id, editor_id } =
+      createCategoryDto;
 
     if (parent_category_id) {
       // 親カテゴリーがあればその親に親があるか、どのくらいあるか確認する
       const parent = await this.categoryRepository.findOne({
         where: { id: parent_category_id },
         relations: [
-          'parentCategory', 
-          'parentCategory.parentCategory', 
-          'parentCategory.parentCategory.parentCategory'
+          'parentCategory',
+          'parentCategory.parentCategory',
+          'parentCategory.parentCategory.parentCategory',
         ],
       });
 
@@ -35,7 +43,7 @@ export class CategoriesService {
       }
 
       // 自分の親のラベルを計算する
-      let depth = 1; 
+      let depth = 1;
       let current = parent;
 
       while (current.parentCategory) {
@@ -44,7 +52,9 @@ export class CategoriesService {
       }
 
       if (depth >= 4) {
-        throw new BadRequestException('Maximum depth of 4 levels reached. You cannot add more sub-categories below this level.');
+        throw new BadRequestException(
+          'Maximum depth of 4 levels reached. You cannot add more sub-categories below this level.',
+        );
       }
     }
 
@@ -53,11 +63,15 @@ export class CategoriesService {
     if (!nextSortOrder) {
       const query = this.categoryRepository.createQueryBuilder('category');
       if (parent_category_id) {
-        query.where('category.parent_category_id = :parentId', { parentId: parent_category_id });
+        query.where('category.parent_category_id = :parentId', {
+          parentId: parent_category_id,
+        });
       } else {
         query.where('category.parent_category_id IS NULL');
       }
-      const maxSortOrder = await query.select('MAX(category.sort_order)', 'max').getRawOne();
+      const maxSortOrder = await query
+        .select('MAX(category.sort_order)', 'max')
+        .getRawOne();
       nextSortOrder = (Number(maxSortOrder?.max) || 0) + 1;
     }
 
@@ -71,7 +85,7 @@ export class CategoriesService {
   }
 
   async findAll(query: FilterCategoryDto): Promise<any[]> {
-    const { 
+    const {
       keyword,
       is_private,
       is_published,
@@ -79,10 +93,11 @@ export class CategoriesService {
       end_date,
       creator_name,
       editor_name,
-      parent_category_id // FrontendからタブIDを送る必要がある。
+      parent_category_id, // FrontendからタブIDを送る必要がある。
     } = query;
 
-    const queryBuilder = this.categoryRepository.createQueryBuilder('category')
+    const queryBuilder = this.categoryRepository
+      .createQueryBuilder('category')
       .leftJoinAndSelect('category.children', 'childLevel2')
       .leftJoinAndSelect('childLevel2.children', 'childLevel3')
       .leftJoinAndSelect('childLevel3.children', 'childLevel4')
@@ -110,23 +125,35 @@ export class CategoriesService {
       .addOrderBy('childLevel4.sort_order', 'ASC');
 
     if (parent_category_id) {
-      queryBuilder.where('category.parent_category_id = :parent_id', { parent_id: parent_category_id });
+      queryBuilder.where('category.parent_category_id = :parent_id', {
+        parent_id: parent_category_id,
+      });
     } else {
       queryBuilder.where('category.parent_category_id IS NULL');
     }
 
     // Keyword Search
     if (keyword) {
-      queryBuilder.andWhere(new Brackets((qb) => {
-        qb.where('LOWER(category.category_name) LIKE :keyword', { keyword: `%${keyword.toLowerCase()}%` })
-          .orWhere('LOWER(childLevel2.category_name) LIKE :keyword', { keyword: `%${keyword.toLowerCase()}%` })
-          .orWhere('LOWER(childLevel3.category_name) LIKE :keyword', { keyword: `%${keyword.toLowerCase()}%` })
-          .orWhere('LOWER(childLevel4.category_name) LIKE :keyword', { keyword: `%${keyword.toLowerCase()}%` });
-      }));
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('LOWER(category.category_name) LIKE :keyword', {
+            keyword: `%${keyword.toLowerCase()}%`,
+          })
+            .orWhere('LOWER(childLevel2.category_name) LIKE :keyword', {
+              keyword: `%${keyword.toLowerCase()}%`,
+            })
+            .orWhere('LOWER(childLevel3.category_name) LIKE :keyword', {
+              keyword: `%${keyword.toLowerCase()}%`,
+            })
+            .orWhere('LOWER(childLevel4.category_name) LIKE :keyword', {
+              keyword: `%${keyword.toLowerCase()}%`,
+            });
+        }),
+      );
     }
 
     const categories = await queryBuilder.getMany();
-    const mapped = categories.map(category => this.mapCategory(category));
+    const mapped = categories.map((category) => this.mapCategory(category));
 
     return this.filterCategoryTree(mapped, {
       is_private: is_private === true || (is_private as any) === 'true',
@@ -140,13 +167,13 @@ export class CategoriesService {
   }
 
   private filterCategoryTree(categories: any[], filters: any): any[] {
-    const hasFilter = 
-      filters.is_private || 
-      filters.is_published || 
-      filters.keyword || 
-      filters.start_date || 
-      filters.end_date || 
-      filters.creator_name || 
+    const hasFilter =
+      filters.is_private ||
+      filters.is_published ||
+      filters.keyword ||
+      filters.start_date ||
+      filters.end_date ||
+      filters.creator_name ||
       filters.editor_name;
 
     if (!hasFilter) return categories;
@@ -155,15 +182,21 @@ export class CategoriesService {
       // 1. Status Filter
       if (filters.is_private || filters.is_published) {
         let statusMatches = false;
-        if (filters.is_private && category.status === 'private') statusMatches = true;
-        if (filters.is_published && category.status === 'public') statusMatches = true;
+        if (filters.is_private && category.status === 'private')
+          statusMatches = true;
+        if (filters.is_published && category.status === 'public')
+          statusMatches = true;
         if (!statusMatches) return false;
       }
 
       // 2. Creator Filter
       if (filters.creator_name) {
         const creatorName = category.creator?.account_name || '';
-        if (!creatorName.toLowerCase().includes(filters.creator_name.toLowerCase())) {
+        if (
+          !creatorName
+            .toLowerCase()
+            .includes(filters.creator_name.toLowerCase())
+        ) {
           return false;
         }
       }
@@ -171,7 +204,9 @@ export class CategoriesService {
       // 3. Editor Filter
       if (filters.editor_name) {
         const editorName = category.editor?.account_name || '';
-        if (!editorName.toLowerCase().includes(filters.editor_name.toLowerCase())) {
+        if (
+          !editorName.toLowerCase().includes(filters.editor_name.toLowerCase())
+        ) {
           return false;
         }
       }
@@ -192,7 +227,9 @@ export class CategoriesService {
       // 5. Keyword Filter
       if (filters.keyword) {
         const categoryName = category.category_name || '';
-        if (!categoryName.toLowerCase().includes(filters.keyword.toLowerCase())) {
+        if (
+          !categoryName.toLowerCase().includes(filters.keyword.toLowerCase())
+        ) {
           return false;
         }
       }
@@ -225,27 +262,42 @@ export class CategoriesService {
   }
 
   private mapCategory(category: any) {
+    const count = Array.isArray(category.articles)
+      ? category.articles.length
+      : 0;
     return {
       ...category,
-      article_count: Array.isArray(category.articles) ? category.articles.length : 0,
-      child_categories: category.children 
-        ? category.children.map((child: any) => this.mapCategory(child)) 
-        : []
+      article_count: count,
+      number_of_articles_used: count,
+      child_categories: category.children
+        ? category.children.map((child: any) => this.mapCategory(child))
+        : [],
     };
   }
 
   async findOne(id: string): Promise<CategoriesEntity> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['parentCategory', 'children', 'creator', 'editor'],
+      relations: [
+        'parentCategory',
+        'children',
+        'creator',
+        'editor',
+        'articles',
+      ],
     });
     if (!category) {
       throw new NotFoundException(`Category with ID "${id}" not found`);
     }
-    return category;
+    // return category;
+    return this.mapCategory(category);
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto, user: AccountEntity): Promise<any> {
+  async update(
+    id: string,
+    updateCategoryDto: UpdateCategoryDto,
+    user: AccountEntity,
+  ): Promise<any> {
     const category = await this.categoryRepository.findOneBy({ id });
     if (!category) {
       throw new NotFoundException(`Category with ID "${id}" not found`);
@@ -253,14 +305,14 @@ export class CategoriesService {
 
     // Prepare clean update data
     const updateData: any = {};
-    
+
     // Only allow specific fields to be updated and filter out null/undefined
     // for fields that are not allowed to be null.
     const fieldsToProcess = Object.keys(updateCategoryDto);
-    
-    fieldsToProcess.forEach(key => {
+
+    fieldsToProcess.forEach((key) => {
       const value = updateCategoryDto[key];
-      
+
       // Never update creator_id or id
       if (key === 'creator_id' || key === 'id') return;
 
@@ -292,42 +344,57 @@ export class CategoriesService {
       where: { parent_category_id: IsNull() },
       order: { sort_order: 'ASC' },
     });
-    return categories.map(category => this.mapCategory(category));
+    return categories.map((category) => this.mapCategory(category));
   }
 
   async findActiveCategories(): Promise<any[]> {
     const categories = await this.categoryRepository
       .createQueryBuilder('category')
-      .leftJoinAndSelect('category.children', 'children', 'children.status = :status', { status: StatusType.PUBLIC })
-      .leftJoinAndSelect('children.children', 'grandchildren', 'grandchildren.status = :status', { status: StatusType.PUBLIC })
-      .leftJoinAndSelect('grandchildren.children', 'greatGrandchildren', 'greatGrandchildren.status = :status', { status: StatusType.PUBLIC })
+      .leftJoinAndSelect(
+        'category.children',
+        'children',
+        'children.status = :status',
+        { status: StatusType.PUBLIC },
+      )
+      .leftJoinAndSelect(
+        'children.children',
+        'grandchildren',
+        'grandchildren.status = :status',
+        { status: StatusType.PUBLIC },
+      )
+      .leftJoinAndSelect(
+        'grandchildren.children',
+        'greatGrandchildren',
+        'greatGrandchildren.status = :status',
+        { status: StatusType.PUBLIC },
+      )
       .where('category.parent_category_id IS NULL')
       .andWhere('category.status = :status', { status: StatusType.PUBLIC })
       .orderBy('category.sort_order', 'ASC')
       .addOrderBy('children.sort_order', 'ASC')
       .getMany();
-      
-    return categories.map(category => this.mapCategory(category));
+
+    return categories.map((category) => this.mapCategory(category));
   }
 
   async reorder(idsInOrder: string[], user: AccountEntity): Promise<void> {
-   const queryRunner = this.dataSource.createQueryRunner()
-    await queryRunner.connect()
-    await queryRunner.startTransaction()
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
       for (let i = 0; i < idsInOrder.length; i++) {
         await queryRunner.manager.update(CategoriesEntity, idsInOrder[i], {
           sort_order: i + 1,
           editor_id: user.id,
-        })
+        });
       }
-      await queryRunner.commitTransaction()
+      await queryRunner.commitTransaction();
     } catch (error) {
-      await queryRunner.rollbackTransaction()
-      throw error
+      await queryRunner.rollbackTransaction();
+      throw error;
     } finally {
-      await queryRunner.release()
+      await queryRunner.release();
     }
   }
 }
