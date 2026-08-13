@@ -1,4 +1,4 @@
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { v1 as uuidv1 } from 'uuid';
 import * as generator from 'generate-password';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
