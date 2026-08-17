@@ -3,8 +3,19 @@ import { DataSourceOptions } from 'typeorm';
 import * as fs from 'fs';
 import { ExtractJwt } from 'passport-jwt';
 
+const readSecret = (envName: string, filePath: string) => {
+  const envValue = process.env[envName];
+
+  if (envValue) {
+    return envValue.replace(/\\n/g, '\n');
+  }
+
+  return fs.readFileSync(filePath, 'utf8');
+};
+
 export default () => {
-  const jwtPrivateKey = fs.readFileSync('./jwt_private_key.pem', 'utf8');
+  const jwtPrivateKey = readSecret('JWT_PRIVATE_KEY', './jwt_private_key.pem');
+  const jwtPublicKey = readSecret('JWT_PUBLIC_KEY', './jwt_public_key.pem');
   const jwtAlgorithm = 'RS256';
   const dbSslCa = process.env.DB_SSL_CA?.replace(/\\n/g, '\n');
 
@@ -44,7 +55,7 @@ export default () => {
       accessTokenExpire: process.env.ACCESS_TOKEN_EXPIRE,
       encode: {
         privateKey: jwtPrivateKey,
-        publicKey: fs.readFileSync('./jwt_public_key.pem', 'utf8'),
+        publicKey: jwtPublicKey,
         signOptions: {
           expiresIn: (process.env.ACCESS_TOKEN_EXPIRE ?? '1h').replace('-', ''),
           algorithm: jwtAlgorithm,
