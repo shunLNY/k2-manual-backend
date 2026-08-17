@@ -4,7 +4,12 @@ import * as fs from 'fs';
 import { ExtractJwt } from 'passport-jwt';
 
 const readSecret = (envName: string, filePath: string) => {
+  const base64Value = process.env[`${envName}_BASE64`];
   const envValue = process.env[envName];
+
+  if (base64Value) {
+    return Buffer.from(base64Value.trim(), 'base64').toString('utf8');
+  }
 
   if (envValue) {
     return envValue
