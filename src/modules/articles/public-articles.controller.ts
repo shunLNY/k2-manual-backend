@@ -17,12 +17,12 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { BaseController } from 'src/common/controller/base.controller';
-import { AuthUser } from 'src/common/decorators/auth-user.decorator';
+import { BaseController } from '../../common/controller/base.controller';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AccountEntity } from '../accounts/entities/account.entity';
 import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { AdminPaginateArticlesSerialize } from './serialize/admin-paginate.serialize';
-import { Serialize } from 'src/common/interceptor/serialize.interceptor';
+import { Serialize } from '../../common/interceptor/serialize.interceptor';
 
 @Controller('articles')
 export class PublicArticlesController extends BaseController {

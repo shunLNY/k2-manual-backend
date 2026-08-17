@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
-import { StatusType } from "src/common/constants";
+import { StatusType } from "../../../common/constants";
 
 export class CreateCategoryDto {
 
@@ -39,5 +39,4 @@ export class CreateCategoryDto {
   @IsOptional()
   number_of_articles_used?: number;
 }
-
 

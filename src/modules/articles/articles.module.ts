@@ -5,7 +5,7 @@ import { ArticlesController } from './articles.controller';
 import { AccountEntity } from '../accounts/entities/account.entity';
 import { CategoriesEntity } from '../categories/entities/category.entity';
 import { ArticleEntity } from './entities/article.entity';
-import { CommonModule } from 'src/modules/common.module';
+import { CommonModule } from '../common.module';
 import { PublicArticlesController } from './public-articles.controller';
 
 @Module({

@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { CategoriesEntity } from 'src/modules/categories/entities/category.entity';
+import { CategoriesEntity } from '../../categories/entities/category.entity';
 
 export class User {
   @Expose()

@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AccountEntity } from '../accounts/entities/account.entity';
-import { generateId } from 'src/common/service/helper.service';
+import { generateId } from '../../common/service/helper.service';
 
 dayjs.extend(utc);
 

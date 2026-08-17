@@ -2,12 +2,12 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put, ParseUUI
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
-import { BaseController } from 'src/common/controller/base.controller';
-import { Serialize } from 'src/common/interceptor/serialize.interceptor';
+import { BaseController } from '../../common/controller/base.controller';
+import { Serialize } from '../../common/interceptor/serialize.interceptor';
 import { PaginateAccountDto } from './dto/paginate-account.dto';
 import { AccountEntity } from './entities/account.entity';
 import { PaginateAccountSerialize } from './serialize/paginate.serializer';
-import { AuthUser } from 'src/common/decorators/auth-user.decorator';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('admin/accounts')

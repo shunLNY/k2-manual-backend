@@ -8,7 +8,7 @@ import { Brackets, DataSource, IsNull, Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoriesEntity } from './entities/category.entity';
-import { StatusType } from 'src/common/constants';
+import { StatusType } from '../../common/constants';
 import { FilterCategoryDto } from './dto/filter-category.dto';
 import { AccountEntity } from '../accounts/entities/account.entity';
 

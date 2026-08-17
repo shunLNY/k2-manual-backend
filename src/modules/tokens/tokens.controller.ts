@@ -2,8 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { TokensService } from './tokens.service';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
-import { BaseController } from 'src/common/controller/base.controller';
-import { Serialize } from 'src/common/interceptor/serialize.interceptor';
+import { BaseController } from '../../common/controller/base.controller';
+import { Serialize } from '../../common/interceptor/serialize.interceptor';
 import { GetTokenSerialize } from './serialize/get-token.serialize';
 
 @Controller("tokens")

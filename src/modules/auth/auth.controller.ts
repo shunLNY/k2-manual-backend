@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, UseGuards, Request, Ip } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { BaseController } from 'src/common/controller/base.controller';
+import { BaseController } from '../../common/controller/base.controller';
 import { AccountsService } from '../accounts/accounts.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ResetPasswordDto } from './dto/reset-password.dto';

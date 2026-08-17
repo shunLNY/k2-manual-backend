@@ -13,13 +13,13 @@ import {
   generateId,
   paginate,
   Pagination,
-} from 'src/common/service/helper.service';
+} from '../../common/service/helper.service';
 import { ArticleEntity } from './entities/article.entity';
 import {
   AccountEntity,
   AccountRole,
 } from '../accounts/entities/account.entity';
-import { FileService } from 'src/common/service/file.service';
+import { FileService } from '../../common/service/file.service';
 import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
 import dayjs from 'dayjs';

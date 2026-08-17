@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { AccountEntity, AccountRole } from './entities/account.entity';
-import { generateId, paginate, Pagination } from 'src/common/service/helper.service';
+import { generateId, paginate, Pagination } from '../../common/service/helper.service';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import { PaginateAccountDto } from './dto/paginate-account.dto';
 import { InjectDataSource } from '@nestjs/typeorm';

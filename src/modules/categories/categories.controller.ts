@@ -18,9 +18,9 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { FilterCategoryDto } from './dto/filter-category.dto';
 import { CategoriesEntity } from './entities/category.entity';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthUser } from 'src/common/decorators/auth-user.decorator';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AccountEntity } from '../accounts/entities/account.entity';
-import { BaseController } from 'src/common/controller/base.controller';
+import { BaseController } from '../../common/controller/base.controller';
 
 @Controller('admin/categories')
 @UseGuards(AuthGuard('jwt'))
