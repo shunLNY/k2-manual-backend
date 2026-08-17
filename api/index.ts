@@ -4,7 +4,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationError } from 'class-validator';
 import { Request, Response, json, urlencoded } from 'express';
-import * as express from 'express';
+import express from 'express';
 import { join } from 'path';
 import { AppModule } from '../src/app.module';
 

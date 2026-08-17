@@ -7,7 +7,7 @@ import { TokensService } from '../tokens/tokens.service';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { LoginDto } from './dto/login.dto';
 import { DEVICE_TYPE_HEADER, REFRESH_TOKEN_HEADER } from '../../common/constants';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { MailerService } from '@nestjs-modules/mailer';
 @Injectable()
 @Injectable()

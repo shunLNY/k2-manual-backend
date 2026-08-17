@@ -1,4 +1,4 @@
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { randomUUID } from 'crypto';
 import * as generator from 'generate-password';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
