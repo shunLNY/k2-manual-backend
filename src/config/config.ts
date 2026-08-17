@@ -7,7 +7,10 @@ const readSecret = (envName: string, filePath: string) => {
   const envValue = process.env[envName];
 
   if (envValue) {
-    return envValue.replace(/\\n/g, '\n');
+    return envValue
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+      .replace(/\\n/g, '\n');
   }
 
   return fs.readFileSync(filePath, 'utf8');
