@@ -42,7 +42,7 @@ export class CreateArticlesTable1778231208756 implements MigrationInterface {
               name: 'status',
               type: 'enum',
               enum: ['public', 'private'],
-              default: '"public"',
+              default: "'public'",
               isNullable: false,
             },
             {

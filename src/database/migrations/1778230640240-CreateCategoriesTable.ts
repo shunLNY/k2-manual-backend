@@ -22,7 +22,7 @@ export class CreateCategoriesTable1778230640240 implements MigrationInterface {
             name: 'status',
             type: 'enum',
             enum: ['public', 'private'],
-            default: '"public"',
+            default: "'public'",
             isNullable: false,
           },
           {
