@@ -1,10 +1,10 @@
-import dayjs from 'dayjs';
-import { v1 as uuidv1 } from 'uuid';
+import * as dayjs from 'dayjs';
+import { randomUUID } from 'crypto';
 import * as generator from 'generate-password';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 
 export const generateId = () => {
-  return uuidv1().replace(/^(.{4})(.{4})-(.{4})-(.{4})/, '$4$3-$1-$2');
+  return randomUUID().replace(/^(.{4})(.{4})-(.{4})-(.{4})/, '$4$3-$1-$2');
 };
 
 export const formatDate = (date: Date, format?: string) => {

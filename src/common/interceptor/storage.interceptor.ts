@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { diskStorage } from 'multer';
-import moment from 'moment';
+import * as moment from 'moment';
 import { extname } from 'path';
 import * as fs from 'fs';
 

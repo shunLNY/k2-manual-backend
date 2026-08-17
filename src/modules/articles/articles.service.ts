@@ -22,7 +22,7 @@ import {
 import { FileService } from '../../common/service/file.service';
 import { DuplicateArticlesDto } from './dto/duplicate-article.dto';
 import { PaginateArticleDto } from './dto/paginate-article.dto';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { CategoriesEntity } from '../categories/entities/category.entity';
 
 @Injectable()

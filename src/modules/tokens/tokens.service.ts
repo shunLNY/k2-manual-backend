@@ -4,9 +4,9 @@ import { UpdateTokenDto } from './dto/update-token.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import TokenEntity from './entities/token.entity';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { nanoid } from 'nanoid';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+import { randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AccountEntity } from '../accounts/entities/account.entity';
@@ -87,9 +87,13 @@ export class TokensService {
       // .subtract(5, 'minutes')
       .format();
 
-    const refreshToken = nanoid(50);
+    const refreshToken = this.generateRefreshToken();
 
     return { accessToken, refreshToken, accessTokenExpire };
+  }
+
+  private generateRefreshToken() {
+    return randomBytes(38).toString('base64url').slice(0, 50);
   }
 
   public generateRefreshTokenExpire(deviceType: string) {
