@@ -5,6 +5,7 @@ const env = dotenv.config().parsed;
 dotenv.config();
 
 console.log('DB_USER:', process.env.DB_USERNAME);
+const dbSslCa = process.env.DB_SSL_CA?.replace(/\\n/g, '\n');
 
 const options: DataSourceOptions = {
   type: 'mysql',
@@ -23,6 +24,13 @@ const options: DataSourceOptions = {
   synchronize: false,
   charset: 'utf8mb4_unicode_ci',
   logging: true,
+  ssl:
+    process.env.DB_SSL === 'true'
+      ? {
+          rejectUnauthorized: Boolean(dbSslCa),
+          ...(dbSslCa ? { ca: dbSslCa } : {}),
+        }
+      : undefined,
 };
 
 const AppDataSource = new DataSource(options);
