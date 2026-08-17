@@ -6,6 +6,7 @@ import { ExtractJwt } from 'passport-jwt';
 export default () => {
   const jwtPrivateKey = fs.readFileSync('./jwt_private_key.pem', 'utf8');
   const jwtAlgorithm = 'RS256';
+  const dbSslCa = process.env.DB_SSL_CA?.replace(/\\n/g, '\n');
 
   const defaultOptions: DataSourceOptions = {
     type: 'mysql',
@@ -18,6 +19,13 @@ export default () => {
     synchronize: false,
     charset: 'utf8mb4_unicode_ci',
     logging: process.env.DB_DEBUG === 'TRUE',
+    ssl:
+      process.env.DB_SSL === 'true'
+        ? {
+            rejectUnauthorized: Boolean(dbSslCa),
+            ...(dbSslCa ? { ca: dbSslCa } : {}),
+          }
+        : undefined,
   };
 
   return {
