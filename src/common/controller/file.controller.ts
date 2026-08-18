@@ -28,6 +28,16 @@ export class FileController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
+    const storagePath = `/storage/${classname}/${subDir}/${filename}`;
+    const storedFile = await this.fileService.getStoredFile(storagePath);
+
+    if (storedFile) {
+      res.set('Content-Type', 'application/octet-stream');
+      res.set('Content-Disposition', `attachment; filename="${filename}"`);
+      res.set('Content-Length', `${storedFile.size}`);
+      return res.send(storedFile.data);
+    }
+
     const fullPath = path.join(
       process.cwd(),
       `storage/${classname}/${subDir}/${filename}`,
@@ -57,6 +67,16 @@ export class FileController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
+    const storagePath = `/storage/${classname}/${subDir}/${filename}`;
+    const storedFile = await this.fileService.getStoredFile(storagePath);
+
+    if (storedFile) {
+      res.set('Content-Type', storedFile.mimeType);
+      res.set('Content-Disposition', `inline`);
+      res.set('Content-Length', `${storedFile.size}`);
+      return res.send(storedFile.data);
+    }
+
     const fullPath = path.join(
       process.cwd(),
       `storage/${classname}/${subDir}/${filename}`,
@@ -83,11 +103,20 @@ export class FileController {
   })
   @Post('_tmp/image/upload')
   async tempImageUpload(@UploadedFile() file: Express.Multer.File) {
-    const { path, filename } = file;
-    return { path: '/' + path, filename };
+    if (file.buffer) {
+      const storagePath = this.fileService.generateStoragePath(
+        '/_tmp/images',
+        file.originalname,
+        'tmp_',
+      );
+      await this.fileService.saveUploadedFile(storagePath, file);
+      return { path: storagePath, filename: path.basename(storagePath) };
+    }
+
+    const { path: filePath, filename } = file;
+    return { path: '/' + filePath, filename };
   }
 
   
 
 }
-

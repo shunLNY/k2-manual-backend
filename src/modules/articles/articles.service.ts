@@ -155,7 +155,7 @@ export class ArticlesService {
       if (thumbnailPath?.startsWith('/storage/_tmp/images')) {
         finalThumbnailPath = this.generatePartImageSliderPath(thumbnailPath);
         try {
-          this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
+          await this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
         } catch (err) {
           console.log(err, '...........move image error ');
         }
@@ -513,7 +513,7 @@ export class ArticlesService {
 
         finalThumbnailPath = this.generatePartImageSliderPath(thumbnailPath);
         try {
-          this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
+          await this.fileService.moveFile(thumbnailPath, finalThumbnailPath);
         } catch (err) {
           console.log(err, '...........move image error ');
         }
@@ -676,7 +676,7 @@ export class ArticlesService {
         const newPath = `/storage/articles/content_images/${newFileName}`;
 
         try {
-          this.fileService.moveFile(relativeSrcPath, newPath);
+          await this.fileService.moveFile(relativeSrcPath, newPath);
           updatedContent = updatedContent.split(imagePath).join(newPath);
         } catch (err) {
           console.error(`Error in moving image: ${imagePath}`, err);

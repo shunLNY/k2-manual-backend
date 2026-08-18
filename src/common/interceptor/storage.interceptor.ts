@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import moment from 'moment';
 import { extname } from 'path';
 import * as fs from 'fs';
@@ -32,28 +32,32 @@ function StorageInterceptor(
     fileInterceptor: NestInterceptor;
     constructor(configService: ConfigService) {
       const { path } = configService.get('storage');
+      const useDatabaseStorage =
+        process.env.FILE_STORAGE_DRIVER === 'db' || process.env.VERCEL === '1';
       let storage: any;
 
-      storage = diskStorage({
-        destination: (req, file, callback) => {
-          // check image to store in tenant directory or central directory
+      storage = useDatabaseStorage
+        ? memoryStorage()
+        : diskStorage({
+            destination: (req, file, callback) => {
+              // check image to store in tenant directory or central directory
 
-          const location = `.${path}${options.path}`;
-          fs.mkdirSync(location, { recursive: true });
-          callback(null, location);
-        },
-        filename: async (req, file, callback) => {
-          const date = moment().format('Y-MM-DD_H-mm-ss');
-          const name = `${options.sku ?? 'F'}_file_${date}`;
-          const fileExtName = extname(file.originalname);
-          const randomName = Array(8)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
+              const location = `.${path}${options.path}`;
+              fs.mkdirSync(location, { recursive: true });
+              callback(null, location);
+            },
+            filename: async (req, file, callback) => {
+              const date = moment().format('Y-MM-DD_H-mm-ss');
+              const name = `${options.sku ?? 'F'}_file_${date}`;
+              const fileExtName = extname(file.originalname);
+              const randomName = Array(8)
+                .fill(null)
+                .map(() => Math.round(Math.random() * 16).toString(16))
+                .join('');
 
-          callback(null, `${name}_${randomName}${fileExtName}`);
-        },
-      });
+              callback(null, `${name}_${randomName}${fileExtName}`);
+            },
+          });
 
       const multerOptions: MulterOptions = {
         storage,

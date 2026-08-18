@@ -39,7 +39,10 @@ export default () => {
     username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    entities: [join(__dirname, '../modules/**/**.entity{.ts,.js}')],
+    entities: [
+      join(__dirname, '../modules/**/**.entity{.ts,.js}'),
+      join(__dirname, '../common/**/*.entity{.ts,.js}'),
+    ],
     synchronize: false,
     charset: 'utf8mb4_unicode_ci',
     logging: process.env.DB_DEBUG === 'TRUE',

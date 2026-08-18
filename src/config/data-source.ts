@@ -19,7 +19,10 @@ const options: DataSourceOptions = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [path.resolve(`${__dirname}/../modules/**/*.entity.{js,ts}`)],
+  entities: [
+    path.resolve(`${__dirname}/../modules/**/*.entity.{js,ts}`),
+    path.resolve(`${__dirname}/../common/**/*.entity.{js,ts}`),
+  ],
   migrations: [path.resolve(`${__dirname}/../database/migrations/*{.ts,.js}`)],
   synchronize: false,
   charset: 'utf8mb4_unicode_ci',

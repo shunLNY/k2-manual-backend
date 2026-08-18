@@ -1,23 +1,36 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { existsSync, mkdirSync, unlink, writeFile } from 'fs';
 
 import * as fs from 'fs/promises';
 import * as path from 'node:path';
+import { DataSource, Repository } from 'typeorm';
+import { FileStorageEntity } from '../entity/file-storage.entity';
 import { formatDate } from './helper.service';
 
 
 @Injectable()
 export class FileService {
   private basePath: string;
+  private fileStorageRepo: Repository<FileStorageEntity>;
   private readonly logger = new Logger(FileService.name);
   
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    @InjectDataSource() private dataSource: DataSource,
+  ) {
     const storage = configService.get('storage');
     this.basePath = storage.path;
+    this.fileStorageRepo = this.dataSource.getRepository(FileStorageEntity);
   }
+
+  private useDatabaseStorage() {
+    return process.env.FILE_STORAGE_DRIVER === 'db' || process.env.VERCEL === '1';
+  }
+
   generateFileName(
     fileExtension: string,
     name: string,
@@ -44,6 +57,41 @@ export class FileService {
     return fileName;
   }
 
+  generateStoragePath(uploadPath: string, originalName: string, sku?: string) {
+    const fileExtName = path.extname(originalName);
+    return `${this.basePath}${uploadPath}/${this.generateFilePrefix(
+      sku ?? 'F',
+    )}${fileExtName}`;
+  }
+
+  async saveUploadedFile(
+    storagePath: string,
+    file: Express.Multer.File,
+  ): Promise<string> {
+    if (!this.useDatabaseStorage()) {
+      return storagePath;
+    }
+
+    await this.fileStorageRepo.save({
+      path: storagePath,
+      data: file.buffer,
+      mimeType: file.mimetype || 'application/octet-stream',
+      size: file.size,
+    });
+
+    return storagePath;
+  }
+
+  async getStoredFile(filePath: string) {
+    if (!this.useDatabaseStorage()) return null;
+
+    return this.fileStorageRepo.findOne({
+      where: {
+        path: filePath,
+      },
+    });
+  }
+
   private upload(
     base64: string,
     fileExtension: string,
@@ -56,6 +104,17 @@ export class FileService {
       name,
     )}`;
     try {
+      if (this.useDatabaseStorage()) {
+        const buffer = Buffer.from(base64, 'base64');
+        this.fileStorageRepo.save({
+          path: fileName,
+          data: buffer,
+          mimeType: fileExtension,
+          size: buffer.length,
+        });
+        return fileName;
+      }
+
       mkdirSync(`.${location}`, { recursive: true });
       writeFile(`.${fileName}`, base64, 'base64', (error) => {
         if (error) {
@@ -94,6 +153,11 @@ export class FileService {
   }
 
   delete(file: string) {
+    if (this.useDatabaseStorage()) {
+      this.fileStorageRepo.delete({ path: file });
+      return;
+    }
+
     if (existsSync(`.${file}`)) {
       unlink(`.${file}`, (err) => {
         if (err) {
@@ -106,6 +170,12 @@ export class FileService {
   }
 
   async getFile(res: any, file: string) {
+    const storedFile = await this.getStoredFile(file);
+    if (storedFile) {
+      res.set('Content-Type', storedFile.mimeType);
+      return res.send(storedFile.data);
+    }
+
     const root = `.${file.substring(0, file.lastIndexOf('/') + 1)}`;
     const fileName = file.substring(file.lastIndexOf('/') + 1, file.length);
 
@@ -114,6 +184,14 @@ export class FileService {
   }
 
   async moveFile(sourcePath: string, destinationPath: string): Promise<void> {
+    if (this.useDatabaseStorage()) {
+      await this.fileStorageRepo.update(
+        { path: sourcePath },
+        { path: destinationPath },
+      );
+      return;
+    }
+
     // 1. Create the destination directory if it does not exist
     // Set the `recursive` option to `true` to create all the subdirectories
     await fs.mkdir('.' + path.dirname(destinationPath), { recursive: true });
