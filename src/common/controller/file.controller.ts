@@ -95,6 +95,17 @@ export class FileController {
     fileStream.pipe(res);
   }
 
+  @Get(':classname/:subDir/:filename')
+  @Public()
+  async getLegacyImage(
+    @Param('classname') classname: string,
+    @Param('subDir') subDir: string,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    return this.getImage(classname, subDir, filename, res);
+  }
+
   @Storage({
     fieldName: 'thumbnail_path',
     path: '/_tmp/images',
