@@ -23,12 +23,16 @@ export class FileService {
     @InjectDataSource() private dataSource: DataSource,
   ) {
     const storage = configService.get('storage');
-    this.basePath = storage.path;
+    this.basePath = storage.path || '/storage';
     this.fileStorageRepo = this.dataSource.getRepository(FileStorageEntity);
   }
 
   private useDatabaseStorage() {
-    return process.env.FILE_STORAGE_DRIVER === 'db' || process.env.VERCEL === '1';
+    return (
+      process.env.FILE_STORAGE_DRIVER === 'db' ||
+      process.env.VERCEL === '1' ||
+      process.env.APP_ENV === 'production'
+    );
   }
 
   generateFileName(

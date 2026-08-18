@@ -33,7 +33,9 @@ function StorageInterceptor(
     constructor(configService: ConfigService) {
       const { path } = configService.get('storage');
       const useDatabaseStorage =
-        process.env.FILE_STORAGE_DRIVER === 'db' || process.env.VERCEL === '1';
+        process.env.FILE_STORAGE_DRIVER === 'db' ||
+        process.env.VERCEL === '1' ||
+        process.env.APP_ENV === 'production';
       let storage: any;
 
       storage = useDatabaseStorage
@@ -42,7 +44,7 @@ function StorageInterceptor(
             destination: (req, file, callback) => {
               // check image to store in tenant directory or central directory
 
-              const location = `.${path}${options.path}`;
+              const location = `.${path || '/storage'}${options.path}`;
               fs.mkdirSync(location, { recursive: true });
               callback(null, location);
             },

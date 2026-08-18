@@ -87,7 +87,7 @@ export default () => {
       },
     },
     storage: {
-      path: process.env.STORAGE_PATH,
+      path: process.env.STORAGE_PATH || '/storage',
     },
     fileUrlPrefix: process.env.FILE_URL_PREFIX,
     // authentication
